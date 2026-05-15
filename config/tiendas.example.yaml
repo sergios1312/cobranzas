@@ -1,0 +1,80 @@
+# Catalogo maestro de tiendas — EJEMPLO PUBLICO sanitizado.
+# El archivo real (config/tiendas.yaml) se genera desde el Excel maestro y NO
+# se versiona porque contiene informacion comercial sensible.
+#
+# Convencion de valores:
+#   null         → el medio de pago / banco no aplica para esta tienda
+#   "PENDIENTE"  → asignacion conocida pendiente por contabilidad
+#
+# Bancos canonicos: INTERBANK, BBVA, BCP, SCOTIABANK, PICHINCHA
+# Combinaciones validas (raras): "BCP/BBVA"
+#
+# Campos:
+#   id_sap                    codigo de tienda en SAP (campo ID TIENDA)
+#   nombre                    nombre legible
+#   codigo_proyecto           codigo de proyecto en SAP (suele coincidir con id_sap)
+#   codigo_comercio_mc_amex   codigo asignado por Izipay para MC y AMEX
+#   codigo_comercio_diners    codigo asignado por Diners
+#   banco_mc                  banco donde se abonan los netos de MASTERCARD
+#   banco_amex                banco donde se abonan los netos de AMERICAN EXPRESS
+#                             (puede diferir del de MC en la misma tienda)
+#   banco_diners              banco donde se abonan los pagos Diners
+#   banco_efectivo            banco donde se deposita el efectivo (informativo)
+#   banco_visa_puntos         banco para Visa Puntos (informativo, no en scope v1)
+#   encargado                 contabilista a cargo (informativo)
+#
+# El prefijo que aparece en la descripcion del banco para MC se deriva
+# automaticamente como "00" + codigo_comercio_mc_amex (ver Tienda.prefijo_descripcion_mc).
+
+tiendas:
+  # Tienda tipica con MC y AMEX en el mismo banco
+  - id_sap: MIS.MI01
+    nombre: MI STORE SCHELL MIRAFLORES
+    codigo_proyecto: MIS.MI01
+    codigo_comercio_mc_amex: "1023366"
+    codigo_comercio_diners: "1001299773"
+    banco_mc: INTERBANK
+    banco_amex: INTERBANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: INTERBANK
+    encargado: JOMAR
+
+  # Tienda con MC y AMEX en BANCOS DISTINTOS
+  - id_sap: MIS.SA01
+    nombre: XIAOMI SANTA ANITA
+    codigo_proyecto: MIS.SA01
+    codigo_comercio_mc_amex: "1208560"
+    codigo_comercio_diners: "1001168487"
+    banco_mc: INTERBANK
+    banco_amex: BCP            # <-- distinto al de MC
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+
+  # Tienda con asignaciones pendientes
+  - id_sap: HON.PI01
+    nombre: HONOR PIURA
+    codigo_proyecto: HON.PI01
+    codigo_comercio_mc_amex: "1057451"
+    codigo_comercio_diners: "PENDIENTE"
+    banco_mc: BBVA
+    banco_amex: PENDIENTE
+    banco_diners: PENDIENTE
+    banco_efectivo: BBVA
+    banco_visa_puntos: PENDIENTE
+    encargado: JOMAR
+
+  # Tienda cerrada / sin POS — sin datos de medios de pago
+  - id_sap: DJI.CH
+    nombre: DJI - CHICLAYO
+    codigo_proyecto: DJI.CH
+    codigo_comercio_mc_amex: null
+    codigo_comercio_diners: null
+    banco_mc: null
+    banco_amex: null
+    banco_diners: null
+    banco_efectivo: BCP
+    banco_visa_puntos: null
+    encargado: JOMAR

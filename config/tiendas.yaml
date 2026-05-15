@@ -1,0 +1,903 @@
+# Catalogo maestro de tiendas — generado desde TIENDAS GENERAL QTC.xlsx
+# ATENCION: este archivo NO se versiona (contiene PII comercial).
+# Usar tiendas.example.yaml para ejemplos publicos.
+#
+# Convencion de valores:
+#   null         → el medio de pago / banco no aplica para esta tienda
+#   "PENDIENTE"  → asignacion conocida pendiente por contabilidad
+#
+# Bancos canonicos: INTERBANK, BBVA, BCP, SCOTIABANK, PICHINCHA, "BCP/BBVA"
+# (variantes INTER/IBK/INTK → INTERBANK, SCTK → SCOTIABANK)
+
+tiendas:
+  - id_sap: MIS.MS01
+    nombre: Xiaomi -   Mall DS
+    codigo_proyecto: MIS.MS01
+    codigo_comercio_mc_amex: '1031001'
+    codigo_comercio_diners: '1001560446'
+    banco_mc: INTERBANK
+    banco_amex: INTERBANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: INTERBANK
+    encargado: JOMAR
+  - id_sap: MIS.MI01
+    nombre: Xiaomi - Schell
+    codigo_proyecto: MIS.MI01
+    codigo_comercio_mc_amex: '1023366'
+    codigo_comercio_diners: '1001299773'
+    banco_mc: INTERBANK
+    banco_amex: INTERBANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: INTERBANK
+    encargado: JOMAR
+  - id_sap: MIS.SA01
+    nombre: Xiaomi -   Sta Anita
+    codigo_proyecto: MIS.SA01
+    codigo_comercio_mc_amex: '1208560'
+    codigo_comercio_diners: '1001168487'
+    banco_mc: INTERBANK
+    banco_amex: BCP
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: MIS.CC01
+    nombre: Xiaomi - Centro Civico
+    codigo_proyecto: MIS.CC01
+    codigo_comercio_mc_amex: '1033857'
+    codigo_comercio_diners: '1002003558'
+    banco_mc: INTERBANK
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: MIS.CO01
+    nombre: Xiaomi Comas
+    codigo_proyecto: MIS.CO01
+    codigo_comercio_mc_amex: '1160770'
+    codigo_comercio_diners: '1001168223'
+    banco_mc: INTERBANK
+    banco_amex: BCP
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BCP
+    encargado: JOMAR
+  - id_sap: MIS.AR01
+    nombre: Xiaomi Arequipa
+    codigo_proyecto: MIS.AR01
+    codigo_comercio_mc_amex: '1033582'
+    codigo_comercio_diners: '1001949301'
+    banco_mc: INTERBANK
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: MIS.SM01
+    nombre: Xiaomi -   San Miguel
+    codigo_proyecto: MIS.SM01
+    codigo_comercio_mc_amex: '1030676'
+    codigo_comercio_diners: '1001548542'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: MIS.PN01
+    nombre: Xiaomi -   Plaza Norte
+    codigo_proyecto: MIS.PN01
+    codigo_comercio_mc_amex: '1025963'
+    codigo_comercio_diners: '1001355550'
+    banco_mc: PICHINCHA
+    banco_amex: PICHINCHA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: HON.AR01
+    nombre: Honor - Arequipa
+    codigo_proyecto: HON.AR01
+    codigo_comercio_mc_amex: '1049822'
+    codigo_comercio_diners: '2001242283'
+    banco_mc: INTERBANK
+    banco_amex: INTERBANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: DJI.SL
+    nombre: DJI - Salaverry
+    codigo_proyecto: DJI.SL
+    codigo_comercio_mc_amex: '1049817'
+    codigo_comercio_diners: '2001242278'
+    banco_mc: INTERBANK
+    banco_amex: INTERBANK
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: DJI.ML
+    nombre: DJI - La Molina
+    codigo_proyecto: DJI.ML
+    codigo_comercio_mc_amex: '1049821'
+    codigo_comercio_diners: '2001242282'
+    banco_mc: INTERBANK
+    banco_amex: INTERBANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: DJI.CH
+    nombre: DJI - Chiclayo
+    codigo_proyecto: DJI.CH
+    codigo_comercio_mc_amex: null
+    codigo_comercio_diners: null
+    banco_mc: null
+    banco_amex: null
+    banco_diners: null
+    banco_efectivo: BCP
+    banco_visa_puntos: null
+    encargado: JOMAR
+  - id_sap: DJI.CHE
+    nombre: DJI - Chepén
+    codigo_proyecto: DJI.CHE
+    codigo_comercio_mc_amex: null
+    codigo_comercio_diners: null
+    banco_mc: null
+    banco_amex: null
+    banco_diners: null
+    banco_efectivo: BCP
+    banco_visa_puntos: null
+    encargado: JOMAR
+  - id_sap: MISHT.01
+    nombre: Soporte Técnico - Schell
+    codigo_proyecto: MISHT.01
+    codigo_comercio_mc_amex: '1038260'
+    codigo_comercio_diners: '1002382801'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: null
+    encargado: JOMAR
+  - id_sap: HARST.01
+    nombre: Soporte Técnico - Honor Arequipa
+    codigo_proyecto: HARST.01
+    codigo_comercio_mc_amex: '1045653'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: null
+    encargado: JOMAR
+  - id_sap: DJCHST.01
+    nombre: Soporte Técnico - DJI Chiclayo
+    codigo_proyecto: DJCHST.01
+    codigo_comercio_mc_amex: null
+    codigo_comercio_diners: null
+    banco_mc: null
+    banco_amex: null
+    banco_diners: null
+    banco_efectivo: BCP
+    banco_visa_puntos: null
+    encargado: JOMAR
+  - id_sap: MIS.ML01
+    nombre: Xiaomi -  La Molina
+    codigo_proyecto: MIS.ML01
+    codigo_comercio_mc_amex: '1049820'
+    codigo_comercio_diners: '2001242281'
+    banco_mc: INTERBANK
+    banco_amex: INTERBANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: MIS.MP01
+    nombre: Xiaomi -  Megaplaza
+    codigo_proyecto: MIS.MP01
+    codigo_comercio_mc_amex: '1033176'
+    codigo_comercio_diners: '1001876761'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: MMPST.01
+    nombre: Soporte Técnico - Xiaomi Mega
+    codigo_proyecto: MMPST.01
+    codigo_comercio_mc_amex: '1041848'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: null
+    encargado: JOMAR
+  - id_sap: HJPM.01
+    nombre: MODULO HONOR JOCKEY PLAZA
+    codigo_proyecto: HJPM.01
+    codigo_comercio_mc_amex: '1053312'
+    codigo_comercio_diners: '2001481756'
+    banco_mc: INTERBANK
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: HSTJP.01
+    nombre: SERV TECNICO HONOR MOD JOCKEY PLAZA
+    codigo_proyecto: HSTJP.01
+    codigo_comercio_mc_amex: '1054920'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: null
+    banco_diners: null
+    banco_efectivo: BBVA
+    banco_visa_puntos: null
+    encargado: JOMAR
+  - id_sap: MIS.PI01
+    nombre: Xiaomi - Piura
+    codigo_proyecto: MIS.PI01
+    codigo_comercio_mc_amex: '1055278'
+    codigo_comercio_diners: '2001616166'
+    banco_mc: INTERBANK
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOMAR
+  - id_sap: SEV.TEC
+    nombre: SERVICIO TECNICO
+    codigo_proyecto: SEV.TEC
+    codigo_comercio_mc_amex: null
+    codigo_comercio_diners: null
+    banco_mc: null
+    banco_amex: null
+    banco_diners: null
+    banco_efectivo: null
+    banco_visa_puntos: null
+    encargado: JOMAR
+  - id_sap: HON.HU01
+    nombre: HONOR HUANCAYO
+    codigo_proyecto: HON.HU01
+    codigo_comercio_mc_amex: '1057452'
+    codigo_comercio_diners: '2001804975'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: PENDIENTE
+    encargado: JOMAR
+  - id_sap: HON.PI01
+    nombre: HONOR PIURA
+    codigo_proyecto: HON.PI01
+    codigo_comercio_mc_amex: '1057451'
+    codigo_comercio_diners: PENDIENTE
+    banco_mc: BBVA
+    banco_amex: PENDIENTE
+    banco_diners: PENDIENTE
+    banco_efectivo: BBVA
+    banco_visa_puntos: PENDIENTE
+    encargado: JOMAR
+  - id_sap: DJI.SM
+    nombre: DJI - San Miguel
+    codigo_proyecto: DJI.SM
+    codigo_comercio_mc_amex: '1044152'
+    codigo_comercio_diners: '2000389596'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: DSMST.01
+    nombre: Soporte Técnico - DJI San Miguel
+    codigo_proyecto: DSMST.01
+    codigo_comercio_mc_amex: '1045314'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HON.MP01
+    nombre: HONOR MEGAPLAZA
+    codigo_proyecto: HON.MP01
+    codigo_comercio_mc_amex: '1044161'
+    codigo_comercio_diners: '2000389605'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: TEC.TJ01
+    nombre: TEC STORE MALL PLAZA TRUJILLO
+    codigo_proyecto: TEC.TJ01
+    codigo_comercio_mc_amex: '1045654'
+    codigo_comercio_diners: '2000640125'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP/BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HMPST.01
+    nombre: TIENDA HONOR SOPORTE TC - MEGAPLAZA
+    codigo_proyecto: HMPST.01
+    codigo_comercio_mc_amex: '1044444'
+    codigo_comercio_diners: '2000424367'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: MIS.PU01
+    nombre: XIAOMI PURUCHUCO
+    codigo_proyecto: MIS.PU01
+    codigo_comercio_mc_amex: '1033858'
+    codigo_comercio_diners: '1002003559'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: PICHINCHA
+    encargado: JOSUE
+  - id_sap: TEC.SJL
+    nombre: TEC STORE SAN JUAN DE LURIGANCHO
+    codigo_proyecto: TEC.SJL
+    codigo_comercio_mc_amex: '1044802'
+    codigo_comercio_diners: '2000519360'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: OP.MS01
+    nombre: Oppo Mall del Sur
+    codigo_proyecto: OP.MS01
+    codigo_comercio_mc_amex: '1052561'
+    codigo_comercio_diners: '2001430982'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HSLM.01
+    nombre: Honor - Salaverry (Módulo)
+    codigo_proyecto: HSLM.01
+    codigo_comercio_mc_amex: '1044657'
+    codigo_comercio_diners: '2000479899'
+    banco_mc: BCP
+    banco_amex: BCP
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BCP
+    encargado: JOSUE
+  - id_sap: HPRM.01
+    nombre: Honor - Primavera (Módulo )
+    codigo_proyecto: HPRM.01
+    codigo_comercio_mc_amex: '1048344'
+    codigo_comercio_diners: '2001078784'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: MIS.HU01
+    nombre: Xiaomi - Huancayo
+    codigo_proyecto: MIS.HU01
+    codigo_comercio_mc_amex: '1038250'
+    codigo_comercio_diners: '1002382796'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: MIS.CU01
+    nombre: Xiaomi - Cusco
+    codigo_proyecto: MIS.CU01
+    codigo_comercio_mc_amex: '1034152'
+    codigo_comercio_diners: '1002053630'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: MIS.CI01
+    nombre: Xiaomi - Chiclayo 2
+    codigo_proyecto: MIS.CI01
+    codigo_comercio_mc_amex: '1036583'
+    codigo_comercio_diners: '1002175579'
+    banco_mc: BCP
+    banco_amex: BCP
+    banco_diners: BCP
+    banco_efectivo: BCP
+    banco_visa_puntos: BCP
+    encargado: JOSUE
+  - id_sap: MIS.BE01
+    nombre: Xiaomi - Bellavista
+    codigo_proyecto: MIS.BE01
+    codigo_comercio_mc_amex: '1033175'
+    codigo_comercio_diners: '1001876760'
+    banco_mc: BCP
+    banco_amex: BCP
+    banco_diners: BCP
+    banco_efectivo: BBVA
+    banco_visa_puntos: BCP
+    encargado: JOSUE
+  - id_sap: TEC.PN01
+    nombre: Tec Store - Plaza Norte- TIENDA CERRADA
+    codigo_proyecto: TEC.PN01
+    codigo_comercio_mc_amex: '1033748'
+    codigo_comercio_diners: '1001985565'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HON.TR01
+    nombre: Honor -Trujillo
+    codigo_proyecto: HON.TR01
+    codigo_comercio_mc_amex: '1036662'
+    codigo_comercio_diners: '1002190673'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HON.PN01
+    nombre: Honor - Plaza Norte
+    codigo_proyecto: HON.PN01
+    codigo_comercio_mc_amex: '1044122'
+    codigo_comercio_diners: '2000383579'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HOSTR.01
+    nombre: SOPORTE TEC - HONOR TRUJILLO
+    codigo_proyecto: HOSTR.01
+    codigo_comercio_mc_amex: '1042736'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HPNST.01
+    nombre: TIENDA HONOR SOPORTE TC - PLAZA NORTE
+    codigo_proyecto: HPNST.01
+    codigo_comercio_mc_amex: '1044123'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: DJCPS.01
+    nombre: SERV TECNICO DJI COMPUPALACE
+    codigo_proyecto: DJCPS.01
+    codigo_comercio_mc_amex: '1053313'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HON.CC01
+    nombre: HONOR MODULO CENTRO CIVICO
+    codigo_proyecto: HON.CC01
+    codigo_comercio_mc_amex: '1054429'
+    codigo_comercio_diners: '2001573750'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: XP.MS01
+    nombre: XPOP MALL DEL SUR
+    codigo_proyecto: XP.MS01
+    codigo_comercio_mc_amex: '1056598'
+    codigo_comercio_diners: '2001695497'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: XP.SM01
+    nombre: XPOP SAN MIGUEL
+    codigo_proyecto: XP.SM01
+    codigo_comercio_mc_amex: '1056607'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HON.JU01
+    nombre: HONOR JULIACA
+    codigo_proyecto: HON.JU01
+    codigo_comercio_mc_amex: '1054505'
+    codigo_comercio_diners: null
+    banco_mc: INTERBANK
+    banco_amex: BBVA
+    banco_diners: null
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: OP.PN01
+    nombre: OPPO PLAZA NORTE
+    codigo_proyecto: OP.PN01
+    codigo_comercio_mc_amex: '1054506'
+    codigo_comercio_diners: null
+    banco_mc: INTERBANK
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: DJI.LC
+    nombre: MODULO DJI LARCOMAR
+    codigo_proyecto: DJI.LC
+    codigo_comercio_mc_amex: '1056331'
+    codigo_comercio_diners: '2001676766'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: null
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HJUST.01
+    nombre: SOPORTE TEC - HONOR JULIACA
+    codigo_proyecto: HJUST.01
+    codigo_comercio_mc_amex: '1056332'
+    codigo_comercio_diners: null
+    banco_mc: INTERBANK
+    banco_amex: BBVA
+    banco_diners: null
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: MIS.SL02
+    nombre: MI STORE SALAVERRY 2
+    codigo_proyecto: MIS.SL02
+    codigo_comercio_mc_amex: '1049816'
+    codigo_comercio_diners: '2001242277'
+    banco_mc: INTERBANK
+    banco_amex: INTERBANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HCCST.01
+    nombre: SOPORTE TEC HONOR MOD CENTRO CIVICO
+    codigo_proyecto: HCCST.01
+    codigo_comercio_mc_amex: '1055563'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: null
+    banco_diners: null
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: JOSUE
+  - id_sap: HON.MS01
+    nombre: HONOR MALL DEL SUR
+    codigo_proyecto: HON.MS01
+    codigo_comercio_mc_amex: '1044162'
+    codigo_comercio_diners: '2000389606'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HARM.01
+    nombre: HONOR MOD AREQUIPA
+    codigo_proyecto: HARM.01
+    codigo_comercio_mc_amex: '1045649'
+    codigo_comercio_diners: '2000640121'
+    banco_mc: SCOTIABANK
+    banco_amex: SCOTIABANK
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HON.SA01
+    nombre: HONOR SANTA ANITA
+    codigo_proyecto: HON.SA01
+    codigo_comercio_mc_amex: '1044163'
+    codigo_comercio_diners: '2000389607'
+    banco_mc: SCOTIABANK
+    banco_amex: SCOTIABANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: TEC.AR01
+    nombre: TEC STORE AREQUIPA LAMBRAMANI (CERRADO)
+    codigo_proyecto: TEC.AR01
+    codigo_comercio_mc_amex: '1044164'
+    codigo_comercio_diners: '2000389608'
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HMSST.01
+    nombre: TIENDA HONOR SOPORTE TC - MALL DEL SUR
+    codigo_proyecto: HMSST.01
+    codigo_comercio_mc_amex: '1044445'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HSAST.01
+    nombre: TIENDA HONOR SOPORTE TC - SANTA ANITA
+    codigo_proyecto: HSAST.01
+    codigo_comercio_mc_amex: '1044446'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: MIS.CH01
+    nombre: XIAOMI CHICLAYO
+    codigo_proyecto: MIS.CH01
+    codigo_comercio_mc_amex: '1033580'
+    codigo_comercio_diners: '1001949300'
+    banco_mc: BCP
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: MIS.JU01
+    nombre: XIAOMI JIRON UNION
+    codigo_proyecto: MIS.JU01
+    codigo_comercio_mc_amex: '1030313'
+    codigo_comercio_diners: '1001532605'
+    banco_mc: INTERBANK
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: MIS.SJL
+    nombre: XIAOMI SAN JUAN DE LURIGANCHO
+    codigo_proyecto: MIS.SJL
+    codigo_comercio_mc_amex: '1044801'
+    codigo_comercio_diners: '2000519359'
+    banco_mc: BCP
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: DJI.JP
+    nombre: DJI JOCKEY PLAZA
+    codigo_proyecto: DJI.JP
+    codigo_comercio_mc_amex: '1051856'
+    codigo_comercio_diners: '2001403516'
+    banco_mc: SCOTIABANK
+    banco_amex: SCOTIABANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HON.PU01
+    nombre: HONOR PURUCHUCO
+    codigo_proyecto: HON.PU01
+    codigo_comercio_mc_amex: '1033756'
+    codigo_comercio_diners: '1001988077'
+    banco_mc: SCOTIABANK
+    banco_amex: SCOTIABANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HON.SJL
+    nombre: HONOR SAN JUAN DE LURIGANCHO
+    codigo_proyecto: HON.SJL
+    codigo_comercio_mc_amex: '1044797'
+    codigo_comercio_diners: '2000519356'
+    banco_mc: SCOTIABANK
+    banco_amex: SCOTIABANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HSJLT.01
+    nombre: SOPORTE TEC - HONOR SJL
+    codigo_proyecto: HSJLT.01
+    codigo_comercio_mc_amex: '1045315'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HPUST.01
+    nombre: TIENDA HONOR SOPORTE TC - PURUCHUCO
+    codigo_proyecto: HPUST.01
+    codigo_comercio_mc_amex: '1044668'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HSTAR.01
+    nombre: TIENDA HONOR SOPORTE  TC- MODULO AREQUIPA - CERRADA
+    codigo_proyecto: HSTAR.01
+    codigo_comercio_mc_amex: '1045653'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HON.CO01
+    nombre: Honor - Comas
+    codigo_proyecto: HON.CO01
+    codigo_comercio_mc_amex: '1036657'
+    codigo_comercio_diners: '1002190672'
+    banco_mc: SCOTIABANK
+    banco_amex: SCOTIABANK
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HON.CU01
+    nombre: Honor - Cusco
+    codigo_proyecto: HON.CU01
+    codigo_comercio_mc_amex: '1037077'
+    codigo_comercio_diners: '1002238384'
+    banco_mc: SCOTIABANK
+    banco_amex: SCOTIABANK
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HON.MK01
+    nombre: Honor - Minka
+    codigo_proyecto: HON.MK01
+    codigo_comercio_mc_amex: '1037953'
+    codigo_comercio_diners: '1002290584'
+    banco_mc: SCOTIABANK
+    banco_amex: SCOTIABANK
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HON.CH01
+    nombre: Honor - Chiclayo
+    codigo_proyecto: HON.CH01
+    codigo_comercio_mc_amex: '1051855'
+    codigo_comercio_diners: '2001403515'
+    banco_mc: SCOTIABANK
+    banco_amex: SCOTIABANK
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HCOST.01
+    nombre: SOPORTE TEC - HONOR COMAS
+    codigo_proyecto: HCOST.01
+    codigo_comercio_mc_amex: '1047594'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HCUST.01
+    nombre: Serv. Tecnico Honor Cusco
+    codigo_proyecto: HCUST.01
+    codigo_comercio_mc_amex: '1047598'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: HCHST.01
+    nombre: SOPORTE TEC - HONOR CHICLAYO
+    codigo_proyecto: HCHST.01
+    codigo_comercio_mc_amex: '1053199'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BCP
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: DJI.AR
+    nombre: DJI AREQUIPA
+    codigo_proyecto: DJI.AR
+    codigo_comercio_mc_amex: '1054560'
+    codigo_comercio_diners: null
+    banco_mc: SCOTIABANK
+    banco_amex: SCOTIABANK
+    banco_diners: null
+    banco_efectivo: BCP
+    banco_visa_puntos: null
+    encargado: MARIAM
+  - id_sap: HMKST.01
+    nombre: Serv. Tecnico - Honor Minka
+    codigo_proyecto: HMKST.01
+    codigo_comercio_mc_amex: '1044669'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: DICST.01
+    nombre: SOPORTE TEC - DJI ICA
+    codigo_proyecto: DICST.01
+    codigo_comercio_mc_amex: '1056376'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: DJI.IC
+    nombre: DJI ICA
+    codigo_proyecto: DJI.IC
+    codigo_comercio_mc_amex: null
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM
+  - id_sap: DARST.01
+    nombre: SOPORTE TEC - DJI AREQUIPA LAMBRAMANI
+    codigo_proyecto: DARST.01
+    codigo_comercio_mc_amex: '1055388'
+    codigo_comercio_diners: null
+    banco_mc: BBVA
+    banco_amex: BBVA
+    banco_diners: BBVA
+    banco_efectivo: BBVA
+    banco_visa_puntos: BBVA
+    encargado: MARIAM

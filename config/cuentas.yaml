@@ -1,0 +1,84 @@
+# Plan de cuentas y codigos contables relevantes para la conciliacion.
+# Valores extraidos del PDF y del analisis de la muestra de abril 2026.
+
+cuentas_puente:
+  # Cuentas donde se acumulan los comprobantes de venta de tiendas, una por
+  # medio de pago. Se cancelan al registrar el asiento de cobranza.
+  MASTERCARD: "121206"
+  AMEX: "121207"
+  DINERS: "121208"
+
+nombres_cuenta_puente:
+  MASTERCARD: "CTA POR COBR MASTERCARD"
+  AMEX: "CTA POR COBR AMERICAN EXPRESS"
+  DINERS: "CTA POR COBR DINERS"
+
+bancos:
+  # Datos de cada banco donde abonan los medios de pago. Una sola cuenta
+  # corriente por banco para toda la empresa (validado contra extractos
+  # reales de abril 2026).
+  INTERBANK:
+    codigo_socio_sap: "104107"
+    cuenta_corriente: "108-3002238284"
+    nombre_largo: "BANCO INTERBANK"
+  BBVA:
+    codigo_socio_sap: "104XXX"          # PENDIENTE — confirmar con contabilidad
+    cuenta_corriente: "0011-0616-0501000126-17"   # de los reportes Diners Pagos
+    nombre_largo: "BANCO BBVA CONTINENTAL"
+  BCP:
+    codigo_socio_sap: "104XXX"          # PENDIENTE
+    cuenta_corriente: "193-2501789-0-94"          # del extracto BCP
+    nombre_largo: "BANCO DE CREDITO DEL PERU"
+  SCOTIABANK:
+    codigo_socio_sap: "104XXX"          # PENDIENTE
+    cuenta_corriente: "PENDIENTE"
+    nombre_largo: "SCOTIABANK PERU"
+  PICHINCHA:
+    codigo_socio_sap: "104XXX"          # PENDIENTE
+    cuenta_corriente: "PENDIENTE"
+    nombre_largo: "BANCO PICHINCHA"
+
+filtros_bancos:
+  # Patrones para identificar depositos por medio de pago dentro de un extracto
+  # bancario especifico. Organizado por (banco, medio).
+  #
+  # Si para un banco/medio no hay entrada aqui, el filtro por defecto es:
+  #   - MASTERCARD: prefijo del codigo de comercio de la tienda
+  #                 (Tienda.prefijo_descripcion_mc, ej. '001023366')
+  #
+  # En BCP, el patron 'DE PROCESOS DE MEDIOS' cubre MC + AMEX (sin distincion),
+  # asi que el matching real se desambigua por (fecha, importe_neto) individual.
+  INTERBANK:
+    AMEX: "AMEX"
+  BBVA:
+    DINERS: "R20100118760"
+  BCP:
+    MASTERCARD: "DE PROCESOS DE MEDIOS"
+    AMEX: "DE PROCESOS DE MEDIOS"
+    DINERS: "DE DINERS CLUB"
+
+# Cliente generico que se usa para registrar EXTORNOS dentro del asiento
+cliente_generico:
+  codigo_socio: "C00000000"
+  nombre: "CLIENTE GENERICO"
+  cuenta_asociada: "461101"
+
+# Proveedores de comision por cada medio de pago. Se usan en la linea final
+# del asiento para registrar la comision bancaria/de la pasarela.
+proveedores_comision:
+  MASTERCARD:
+    codigo_socio: "P20432405525"
+    nombre: "PROCESOS DE MEDIOS DE PAGO S.A."
+    cuenta_asociada: "421201"
+  AMEX:
+    codigo_socio: "PXXXXXXXXXXXX"       # PENDIENTE
+    nombre: "PENDIENTE"
+    cuenta_asociada: "421XXX"           # PENDIENTE
+  DINERS:
+    codigo_socio: "PXXXXXXXXXXXX"       # PENDIENTE
+    nombre: "PENDIENTE"
+    cuenta_asociada: "421XXX"           # PENDIENTE
+
+# Tolerancia en centimos para considerar una diferencia como "no significativa"
+# durante la conciliacion de ventas
+tolerancia_conciliacion: 0.01
