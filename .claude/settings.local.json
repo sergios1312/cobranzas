@@ -19,7 +19,16 @@
       "Bash(py main.py --inputs \"Muestra al 30.04/\" --outputs ./salidas/ --desde 2026-04-01 --hasta 2026-04-30 --tiendas MIS.MI01,MIS.CI01,MIS.BE01,MIS.SJL,MIS.CO01,MIS.SA01)",
       "Bash(rm -f salidas/*.xlsx 2>/dev/null && py main.py --inputs \"Muestra al 30.04/\" --outputs ./salidas/ --desde 2026-04-01 --hasta 2026-04-30 --tiendas MIS.MI01 2>&1 | tail -8)",
       "Bash(py conciliar_ventas.py --inputs \"Muestra al 30.04/\" --outputs ./resultados/)",
-      "Bash(py conciliar_ventas.py --inputs \"Muestra al 30.04/\" --outputs ./resultados/ --tiendas MIS.MI01 --solo-discrepancias)"
+      "Bash(py conciliar_ventas.py --inputs \"Muestra al 30.04/\" --outputs ./resultados/ --tiendas MIS.MI01 --solo-discrepancias)",
+      "Bash(py conciliar_ventas.py --inputs \"Muestra al 30.04/\" --outputs ./resultados/ --tiendas MIS.MI01)",
+      "Bash(py -m pip install --user --quiet pyinstaller)",
+      "Bash(py -m PyInstaller --version)",
+      "Bash(py build_exe.py)",
+      "Bash(./ConciliadorVentas.exe)",
+      "Bash(tasklist)",
+      "Bash(gh repo *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
