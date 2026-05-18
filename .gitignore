@@ -7,3 +7,9 @@ env/
 venv/
 .vscode/
 .idea/
+
+# Artefactos de compilacion PyInstaller (regenerables con: py build_exe.py)
+build/
+
+# Archivos temporales de Excel
+~$*

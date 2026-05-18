@@ -27,6 +27,8 @@ Output:
 from __future__ import annotations
 
 import argparse
+import os
+import sys
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
@@ -43,6 +45,14 @@ from src.conciliacion import ventas as concil_ventas
 
 
 MEDIOS = (MedioPago.MASTERCARD, MedioPago.AMEX, MedioPago.DINERS)
+
+
+def resource_path(rel: str) -> Path:
+    """Resuelve la ruta de un recurso. Funciona tanto corriendo como script
+    (.py) como dentro de un .exe de PyInstaller (donde los datos embebidos se
+    extraen a sys._MEIPASS en tiempo de ejecucion)."""
+    base = getattr(sys, "_MEIPASS", os.path.abspath("."))
+    return Path(base) / rel
 
 
 def parse_args():
@@ -75,14 +85,15 @@ def _primer_archivo(carpeta: Path, patron: str) -> Path:
     return matches[0]
 
 
-def cargar_inputs(inputs: Path) -> dict:
-    """Descubre y carga los 5 insumos del paso 2-3 del PDF."""
-    cierre_path = _primer_archivo(inputs / "Reporte SAP", "*.xlsx")
-    mc_path = _primer_archivo(inputs / "Reportes CSV", "mc_*.csv")
-    amex_path = _primer_archivo(inputs / "Reportes CSV", "movi_amex*.csv")
-    diners_v_path = _primer_archivo(inputs / "Reportes CSV", "ventas-*.xlsx")
-    diners_p_path = _primer_archivo(inputs / "Reportes CSV", "pagos-*.xlsx")
-
+def cargar_inputs_archivos(
+    cierre_path: Path,
+    mc_path: Path,
+    amex_path: Path,
+    diners_v_path: Path,
+    diners_p_path: Path,
+) -> dict:
+    """Carga los 5 insumos desde rutas de archivo explicitas. Esta es la
+    funcion que usa la GUI (donde el usuario elige cada archivo)."""
     return {
         "cierre": cierre_caja.cargar(cierre_path),
         "txn_mc": izipay.cargar(mc_path, MedioPago.MASTERCARD),
@@ -90,13 +101,25 @@ def cargar_inputs(inputs: Path) -> dict:
         "txn_diners": diners.cargar_ventas(diners_v_path),
         "pagos_diners": diners.cargar_pagos(diners_p_path),
         "_paths": {
-            "cierre": cierre_path,
-            "mc": mc_path,
-            "amex": amex_path,
-            "diners_ventas": diners_v_path,
-            "diners_pagos": diners_p_path,
+            "cierre": Path(cierre_path),
+            "mc": Path(mc_path),
+            "amex": Path(amex_path),
+            "diners_ventas": Path(diners_v_path),
+            "diners_pagos": Path(diners_p_path),
         },
     }
+
+
+def cargar_inputs(inputs: Path) -> dict:
+    """Descubre los 5 insumos por glob en las subcarpetas estandar y delega
+    a `cargar_inputs_archivos`. Esta es la ruta que usa el CLI."""
+    return cargar_inputs_archivos(
+        cierre_path=_primer_archivo(inputs / "Reporte SAP", "*.xlsx"),
+        mc_path=_primer_archivo(inputs / "Reportes CSV", "mc_*.csv"),
+        amex_path=_primer_archivo(inputs / "Reportes CSV", "movi_amex*.csv"),
+        diners_v_path=_primer_archivo(inputs / "Reportes CSV", "ventas-*.xlsx"),
+        diners_p_path=_primer_archivo(inputs / "Reportes CSV", "pagos-*.xlsx"),
+    )
 
 
 def filtrar_por_periodo(insumos: dict, desde, hasta) -> dict:
@@ -206,6 +229,40 @@ def resumir(detalle: list[dict], tolerancia: Decimal) -> list[dict]:
     return out
 
 
+def procesar(
+    insumos: dict,
+    tiendas: list,
+    tolerancia: Decimal,
+    desde=None,
+    hasta=None,
+) -> dict:
+    """Ejecuta la conciliacion completa. Devuelve dict con detalle, resumen,
+    discrepancias y la cadena de periodo. Reutilizable desde CLI y GUI."""
+    if desde is not None or hasta is not None:
+        insumos = filtrar_por_periodo(insumos, desde, hasta)
+
+    detalle: list[dict] = []
+    for t in tiendas:
+        detalle.extend(conciliar_tienda(t, insumos, tolerancia))
+
+    resumen = resumir(detalle, tolerancia)
+    discrepancias = [f for f in detalle if f["estado"] == "DISCREPANCIA"]
+
+    if insumos["cierre"]:
+        fmin = min(l.fecha for l in insumos["cierre"])
+        fmax = max(l.fecha for l in insumos["cierre"])
+        periodo = f"{fmin.isoformat()}_{fmax.isoformat()}"
+    else:
+        periodo = "vacio"
+
+    return {
+        "detalle": detalle,
+        "resumen": resumen,
+        "discrepancias": discrepancias,
+        "periodo": periodo,
+    }
+
+
 def imprimir_consola(resumen: list[dict], discrepancias: list[dict], solo_discrepancias: bool):
     """Imprime un resumen ejecutivo y la tabla de discrepancias en stdout."""
     print()
@@ -290,29 +347,18 @@ def main():
 
     if args.desde or args.hasta:
         print(f"[2/4] Filtrando al periodo {args.desde or '...'} -> {args.hasta or '...'}")
-        insumos = filtrar_por_periodo(insumos, args.desde, args.hasta)
 
     print(f"[3/4] Conciliando {len(tiendas)} tienda(s)...")
-    detalle: list[dict] = []
-    for t in tiendas:
-        detalle.extend(conciliar_tienda(t, insumos, cuentas.tolerancia_conciliacion))
+    res = procesar(
+        insumos, tiendas, cuentas.tolerancia_conciliacion,
+        desde=args.desde, hasta=args.hasta,
+    )
 
-    resumen = resumir(detalle, cuentas.tolerancia_conciliacion)
-    discrepancias = [f for f in detalle if f["estado"] == "DISCREPANCIA"]
-
-    # Rango de fechas del cierre filtrado
-    if insumos["cierre"]:
-        fmin = min(l.fecha for l in insumos["cierre"])
-        fmax = max(l.fecha for l in insumos["cierre"])
-        periodo = f"{fmin.isoformat()}_{fmax.isoformat()}"
-    else:
-        periodo = "vacio"
-
-    ruta_excel = args.outputs / f"conciliacion_ventas_{periodo}.xlsx"
+    ruta_excel = args.outputs / f"conciliacion_ventas_{res['periodo']}.xlsx"
     print(f"[4/4] Exportando a {ruta_excel}...")
-    exportar_excel(ruta_excel, detalle, resumen, discrepancias)
+    exportar_excel(ruta_excel, res["detalle"], res["resumen"], res["discrepancias"])
 
-    imprimir_consola(resumen, discrepancias, args.solo_discrepancias)
+    imprimir_consola(res["resumen"], res["discrepancias"], args.solo_discrepancias)
     print(f"\n[ok] Excel generado: {ruta_excel}")
 
 
