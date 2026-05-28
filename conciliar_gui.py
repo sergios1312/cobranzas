@@ -87,10 +87,10 @@ def _bordes_del_mes(d: date) -> tuple[date, date]:
 #  Estilo (paleta grafito + IBM Plex)
 # ──────────────────────────────────────────────────────────────────────────
 QSS = """
-* { font-family: "IBM Plex Sans"; font-size: 14px; color: #1c1e22; }
+* { font-family: "IBM Plex Sans"; font-size: 13px; color: #1c1e22; }
 QWidget#root { background: #ffffff; }
 
-QLabel#h1    { font-size: 21px; font-weight: 600; }
+QLabel#h1    { font-size: 17px; font-weight: 600; }
 QLabel#sub   { color: #6c7077; font-size: 13px; }
 QLabel#grupo { color: #a0a3a9; font-size: 11px; font-weight: 600;
                letter-spacing: 1px; }
@@ -106,7 +106,7 @@ QLabel#check { color: #2f8c5f; font-weight: 700; font-size: 13px; }
 /* Botón secundario (Examinar) */
 QPushButton {
     background: #ffffff; border: 1px solid #d8dade; border-radius: 7px;
-    padding: 9px 16px; font-weight: 500; font-size: 13px;
+    padding: 6px 14px; font-weight: 500; font-size: 12px;
 }
 QPushButton:hover   { background: #f2f2f4; }
 QPushButton:pressed { background: #e9e9ec; }
@@ -114,7 +114,7 @@ QPushButton:pressed { background: #e9e9ec; }
 /* Botón primario (Procesar) */
 QPushButton#primary {
     background: #26282c; border: 1px solid #26282c; color: #ffffff;
-    font-weight: 600; padding: 13px; font-size: 14px;
+    font-weight: 600; padding: 9px; font-size: 13px;
 }
 QPushButton#primary:hover    { background: #373a3f; border-color: #373a3f; }
 QPushButton#primary:disabled { background: #c9cace; border-color: #c9cace;
@@ -167,7 +167,7 @@ class Campo(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("field")
-        self.setFixedHeight(40)
+        self.setFixedHeight(32)
         lay = QHBoxLayout(self)
         lay.setContentsMargins(12, 0, 12, 0)
         lay.setSpacing(8)
@@ -333,7 +333,10 @@ class Worker(QThread):
             else:
                 periodo = "vacio"
             self.salida.mkdir(parents=True, exist_ok=True)
-            ruta = self.salida / f"conciliacion_ventas_{periodo}.xlsx"
+            # Sello de hora para evitar colision si el Excel anterior esta
+            # abierto en Excel (Windows lo bloquea y daria PermissionError).
+            sello = datetime.now().strftime("%H%M%S")
+            ruta = self.salida / f"conciliacion_ventas_{periodo}_{sello}.xlsx"
             cv.exportar_excel(ruta, detalle, resumen, discrepancias)
             self._log(f"Excel generado:&nbsp;{ruta.name}")
             self._log(f"Carpeta:&nbsp;{self.salida}")
@@ -355,14 +358,14 @@ class Ventana(QWidget):
         super().__init__()
         self.setObjectName("root")
         self.setWindowTitle("Conciliación de Ventas — Tiendas Físicas")
-        self.resize(960, 920)
+        self.resize(720, 720)
         self.campos: dict[str, Campo] = {}
         self.detectador: DetectarFechas | None = None
         self.worker: Worker | None = None
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(34, 30, 34, 30)
-        root.setSpacing(22)
+        root.setContentsMargins(24, 20, 24, 18)
+        root.setSpacing(14)
 
         # — Encabezado —
         h1 = QLabel("Conciliación de ventas")
@@ -378,13 +381,13 @@ class Ventana(QWidget):
         # — Archivos de origen —
         root.addWidget(self._rotulo("Archivos de origen"))
         grid = QGridLayout()
-        grid.setHorizontalSpacing(14)
-        grid.setVerticalSpacing(9)
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(6)
         grid.setColumnStretch(1, 1)
         for i, (clave, etiqueta, tipos) in enumerate(ARCHIVOS):
             lbl = QLabel(etiqueta)
             lbl.setObjectName("campo")
-            lbl.setFixedWidth(218)
+            lbl.setFixedWidth(180)
             campo = Campo()
             btn = QPushButton("Examinar")
             btn.clicked.connect(
@@ -412,9 +415,9 @@ class Ventana(QWidget):
         self.hasta.setCalendarPopup(True)
         self.hasta.setDisplayFormat("yyyy-MM-dd")
         self.hasta.setDate(QDate.currentDate())
-        hint = QLabel("se autollenan al cargar el Cierre — edítalas para "
-                      "acotar el período")
+        hint = QLabel("se autollenan al cargar el Cierre")
         hint.setObjectName("hint")
+        hint.setWordWrap(True)
         fechas.addWidget(lbl_d)
         fechas.addWidget(self.desde)
         fechas.addSpacing(14)
@@ -449,7 +452,7 @@ class Ventana(QWidget):
         root.addWidget(self._rotulo("Resultados"))
         self.consola = QTextEdit()
         self.consola.setReadOnly(True)
-        self.consola.setMinimumHeight(220)
+        self.consola.setMinimumHeight(260)
         root.addWidget(self.consola, 1)
 
         self._refrescar_estado()
