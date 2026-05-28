@@ -22,6 +22,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..modelos import MovimientoBancario
+from ._comun import texto_id
 
 
 def _parse_decimal(v) -> Decimal:
@@ -39,7 +40,8 @@ def _parse_fecha(v):
     return pd.to_datetime(str(v).strip(), format="%d/%m/%Y", errors="coerce").date()
 
 
-def cargar(path: str | Path, cuenta: str = "", *, sheet_name: str = "BCP 94") -> list[MovimientoBancario]:
+def cargar(path: str | Path, cuenta: str = "", *,
+           sheet_name: str = "BCP 94") -> list[MovimientoBancario]:
     """Lee el Excel de movimientos BCP. Detecta la fila de cabecera buscando
     'Fecha' como primera columna no vacia con sus pares 'Monto' y 'Saldo'.
     """
@@ -72,7 +74,7 @@ def cargar(path: str | Path, cuenta: str = "", *, sheet_name: str = "BCP 94") ->
             fecha_proceso=_parse_fecha(fila.get("Fecha valuta")) or fecha,
             banco="BCP",
             cuenta=cuenta,
-            nro_operacion=str(fila.get("Operación - Número", "")).strip(),
+            nro_operacion=texto_id(fila.get("Operación - Número")),
             descripcion=str(fila.get("Descripción operación", "")).strip(),
             abono=abono,
             cargo=cargo,

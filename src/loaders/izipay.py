@@ -23,7 +23,6 @@ import pandas as pd
 
 from ..modelos import MedioPago, TipoTransaccion, TransaccionMedioPago
 
-
 _STATUS_EXTORNO = {"EXTORNO", "RET.CONTRACARGO"}
 
 

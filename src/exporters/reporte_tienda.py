@@ -16,15 +16,21 @@ Hojas generadas:
 
 from __future__ import annotations
 
-from dataclasses import asdict, fields, is_dataclass
+from dataclasses import fields
 from decimal import Decimal
 from pathlib import Path
 
 import pandas as pd
 
 from ..modelos import (
-    DiferenciaConciliacion, LineaCierreCaja, MatchDeposito, MedioPago,
-    MovimientoBancario, PagoDiners, Tienda, TipoTransaccion, TransaccionMedioPago,
+    DiferenciaConciliacion,
+    LineaCierreCaja,
+    MatchDeposito,
+    MedioPago,
+    PagoDiners,
+    Tienda,
+    TipoTransaccion,
+    TransaccionMedioPago,
 )
 
 
@@ -173,6 +179,9 @@ def exportar(
 
         if txn_diners:
             _df_transacciones(txn_diners).to_excel(xl, sheet_name="DINERS", index=False)
+            _df_resumen_por_fecha(txn_diners).to_excel(
+                xl, sheet_name="DINERS_RESUMEN", index=False,
+            )
 
         if pagos_diners:
             _df_pagos_diners(pagos_diners).to_excel(

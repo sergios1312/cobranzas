@@ -12,15 +12,19 @@ el usuario es:
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from datetime import date
 from decimal import Decimal
-from typing import Iterable, Optional
 
 from ..modelos import (
-    MatchDeposito, MedioPago, MovimientoBancario, PagoDiners, Tienda,
-    TipoTransaccion, TransaccionMedioPago,
+    MatchDeposito,
+    MedioPago,
+    MovimientoBancario,
+    PagoDiners,
+    Tienda,
+    TipoTransaccion,
+    TransaccionMedioPago,
 )
-
 
 # ---------------------------------------------------------------------------
 # Construcción de "depósitos esperados" según medio de pago
@@ -79,7 +83,7 @@ def _pagos_diners_del_periodo(
 
 def depositos_esperados_diners(
     pagos: Iterable[PagoDiners],
-    ventas: Optional[Iterable[TransaccionMedioPago]] = None,
+    ventas: Iterable[TransaccionMedioPago] | None = None,
 ) -> list[tuple[date, Decimal]]:
     """Para Diners, cada línea del reporte de Pagos representa un depósito
     individual. Filtramos solo los PAGADO.

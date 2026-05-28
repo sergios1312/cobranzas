@@ -36,6 +36,8 @@ def exportar(asiento: Asiento, path: str | Path) -> Path:
         "Total debito": asiento.total_debito(),
         "Total credito": asiento.total_credito(),
         "Balanceado": asiento.balanceado(),
+        "Requiere revision": asiento.requiere_revision(),
+        "Advertencias": " | ".join(asiento.advertencias),
     }])
 
     lineas = pd.DataFrame([{

@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..modelos import MovimientoBancario
+from ._comun import texto_id
 
 
 def _parse_decimal(v) -> Decimal:
@@ -26,7 +27,8 @@ def _parse_fecha(v):
     return pd.to_datetime(str(v).strip(), format="%d/%m/%Y", errors="coerce").date()
 
 
-def cargar(path: str | Path, cuenta: str = "", *, sheet_name: str = "INTERBANK") -> list[MovimientoBancario]:
+def cargar(path: str | Path, cuenta: str = "", *,
+           sheet_name: str = "INTERBANK") -> list[MovimientoBancario]:
     """Lee el Excel de movimientos Interbank.
 
     El archivo real tiene 4 filas de metadatos antes de la cabecera (cuenta,
@@ -57,7 +59,7 @@ def cargar(path: str | Path, cuenta: str = "", *, sheet_name: str = "INTERBANK")
             fecha_proceso=_parse_fecha(fila.get("Fecha de proceso")) or fecha_op,
             banco="INTERBANK",
             cuenta=cuenta,
-            nro_operacion=str(fila.get("Nro. de operación", "")).strip(),
+            nro_operacion=texto_id(fila.get("Nro. de operación")),
             descripcion=str(fila.get("Descripción", "")).strip(),
             cargo=_parse_decimal(fila.get("Cargo")),
             abono=_parse_decimal(fila.get("Abono")),

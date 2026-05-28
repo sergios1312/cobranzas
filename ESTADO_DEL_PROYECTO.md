@@ -3,7 +3,7 @@
 > Documento de seguimiento. Resume todo lo hecho, lo pendiente y los puntos
 > abiertos del proyecto de automatización de la conciliación de cobranzas.
 >
-> **Última actualización:** 2026-05-15
+> **Última actualización:** 2026-05-18
 > **Modo de trabajo:** DEMO / MVP — funcionar con la muestra del PDF
 > (`Muestra al 30.04/`), no con todos los casos de producción.
 
@@ -22,12 +22,13 @@ bancarios y genera asientos contables para SAP Business One.
 | Indicador | Valor |
 |---|---|
 | Tiendas en el catálogo | 81 |
-| Pipeline completo (`main.py`) | 58 asientos balanceados + 76 reportes |
+| Pipeline completo (`main.py` / GUI) | 16 asientos válidos + 76 reportes |
+| Asientos omitidos por código contable pendiente | 42 (se generan al completar `cuentas.yaml`) |
 | Conciliaciones omitidas (bancos sin loader) | 22 (Scotiabank 20, Pichincha 2) |
-| Script de conciliación de ventas (`conciliar_ventas.py`) | 73 tiendas, 819 discrepancias detectadas |
-| Ejecutable de escritorio | `dist/ConciliadorVentas.exe` (≈49 MB) |
+| Tests automatizados | 39 (`pytest` verde); `mypy` y `ruff` limpios |
+| Ejecutable de escritorio | `dist/ConciliadorVentas.exe` (≈46 MB) — proceso completo |
 | Asientos que NO balancean | 0 |
-| Asientos con anomalía (DEBE negativo) | 1 (MIS.PI01 MC) |
+| Asientos marcados para revisión contable | 1 (MIS.PI01 MC, residuo negativo) |
 
 ---
 
@@ -49,8 +50,9 @@ Cierre SAP). NO toca bancos ni genera asientos. Produce
 Discrepancias). Pensado como demo de conciliación de ventas.
 
 ### 2.3 Ejecutable de escritorio — `ConciliadorVentas.exe`
-Interfaz gráfica (ventana) sobre el script anterior. El usuario selecciona los
-5 archivos crudos con botones, presiona Procesar y obtiene el Excel. Los
+Interfaz gráfica sobre `src/pipeline.py`: ejecuta el **proceso completo**
+(pasos 2-5). El usuario selecciona los 6 archivos crudos con botones, presiona
+Procesar y obtiene los reportes de conciliación y los asientos SAP. Los
 catálogos van embebidos en el .exe. No requiere Python instalado.
 
 ---
@@ -157,8 +159,10 @@ procesa las 81 tiendas, reporta tiendas omitidas por banco sin loader.
 
 ### 5.1 BLOQUEANTES para producción
 
-**P1 — Códigos contables en `config/cuentas.yaml` (7 placeholders).**
-Sin estos, los asientos salen con códigos `XXX` y NO se pueden importar a SAP:
+**P1 — Códigos contables en `config/cuentas.yaml` (8 placeholders).**
+El pipeline detecta estos placeholders y **omite** los asientos que los
+necesitan (con un mensaje claro), en vez de exportar códigos basura no
+importables a SAP. Los genera todos en cuanto se completen. Faltan:
 - `codigo_socio_sap` de **BBVA** (hoy `104XXX`)
 - `codigo_socio_sap` de **BCP** (hoy `104XXX`)
 - `codigo_socio_sap` de **SCOTIABANK** (hoy `104XXX`)
@@ -169,8 +173,9 @@ Sin estos, los asientos salen con códigos `XXX` y NO se pueden importar a SAP:
   (hoy `PXXXXXXXXXXXX` / "PENDIENTE" / `421XXX`)
 - `cuenta_corriente` de **SCOTIABANK** y **PICHINCHA** (hoy `"PENDIENTE"`)
 
-> Responsable: contabilidad. Cuando lleguen los datos son 7 ediciones de 1
-> línea en `config/cuentas.yaml`.
+> Responsable: contabilidad. Cuando lleguen los datos son ediciones de 1
+> línea en `config/cuentas.yaml`; el pipeline valida que ya no haya
+> placeholders al arrancar.
 
 **P2 — Plantilla oficial "Importar de Excel" de SAP B1.**
 El exporter `sap_b1.py` produce un formato tentativo basado en las capturas
@@ -199,11 +204,13 @@ de AMEX depositado en BCP (la muestra no tenía suficientes casos claros).
 
 ### 5.3 Bugs y casos residuales conocidos
 
-**B1 — Asiento MIS.PI01 MASTERCARD con DEBE negativo (−S/1,873.32).**
-Único asiento con anomalía. La línea de comisión sale negativa. No es un caso
-Diners (el fix multi-período no aplica). Causa probable: un abono del banco
-sin contraparte en el CSV (depósito de un período anterior). Falta debug
-específico.
+**B1 — Residuo de comisión negativo (caso MIS.PI01 MC: −S/1,873.32). RESUELTO.**
+Cuando los depósitos más los extornos del período superan el total a cancelar,
+el residuo de comisión queda negativo. Antes salía como un DEBE negativo
+(asiento inválido); ahora `generador.py` lo registra como CRÉDITO, el asiento
+balancea y se marca en `Asiento.advertencias` para revisión contable. La causa
+de fondo —extornos que revierten ventas de un período anterior— queda señalada
+para el contador.
 
 **B2 — 35 diferencias significativas residuales en conciliación de ventas
 Diners.** Tras alinear `fecha_proceso` con `Fecha de ticket` se eliminaron
@@ -224,15 +231,16 @@ archivos cambia, revisar que el filtro siga siendo correcto.
 
 ### 5.4 Calidad y testing
 
-**P6 — No hay tests automatizados (pytest).**
-El `BLUEPRINT.md` §9 tiene el plan completo de tests (V01-V08 conciliación
-ventas, D01-D12 depósitos, A01-A10 asiento, tests de loaders). Nada está
-implementado. Para un MVP de demo no es bloqueante, pero antes de producción
-es necesario (el sistema toca dinero).
+**P6 — Tests del dominio. HECHO.**
+39 tests en `tests/` cubren conciliación de ventas, conciliación de depósitos,
+generación de asiento, la validación de códigos contables y un test e2e contra
+la muestra (reproduce el HABER 168,769.84 del PDF). `pytest` en verde.
+Pendiente (menor): tests unitarios dedicados de cada loader con archivos
+sintéticos — hoy los loaders se ejercitan vía el test e2e.
 
-**P7 — `mypy` y `ruff` no se han corrido.**
-El `CLAUDE.md` pide mypy estricto sobre `src/` y ruff para lint. No se
-verificó el cumplimiento tras todos los cambios.
+**P7 — `mypy` y `ruff`. HECHO.**
+Ambos configurados en `pyproject.toml` y corriendo limpios sobre `src/`.
+Dependencias de desarrollo en `requirements-dev.txt`.
 
 ### 5.5 Decisiones pospuestas
 
@@ -266,17 +274,13 @@ valor agregado fácil de implementar.
 | Aspecto | Estado |
 |---|---|
 | Repositorio | `github.com/sergios1312/cobranzas` (privado) |
-| Commits | 1 ("Initial commit") |
-| Cambios sin commitear | `conciliar_ventas.py`, `conciliar_gui.py`, `build_exe.py`, `ConciliadorVentas.spec`, `dist/`, `.gitignore`, `resultados/`, `.claude/settings.local.json` |
-| `.gitignore` | Actualizado para excluir `build/` y temporales de Excel |
+| Trabajo de esta iteración | correcciones de dominio + suite de tests + pipeline compartido (`src/pipeline.py`) + GUI completa, **sin commitear** |
 
-> ⚠️ **Pendiente:** los commits de la GUI + ejecutable quedaron preparados pero
-> no se ejecutaron (`git commit` / `git push`). Falta cerrar esa subida.
->
 > ⚠️ **Nota de seguridad:** el "Initial commit" incluyó datos sensibles
-> (`config/tiendas.yaml` con PII, extractos bancarios reales de
-> `Muestra al 30.04/`). El repositorio es privado, así que el riesgo es
-> acotado, pero conviene tenerlo presente si alguna vez se hace público.
+> (`config/tiendas.yaml` con PII comercial, extractos bancarios reales en
+> `Muestra al 30.04/`, salidas con montos). El repositorio es privado, así
+> que el riesgo es acotado, pero conviene revisar `.gitignore` y, si alguna
+> vez se hace público, depurar el historial.
 
 ---
 
@@ -297,8 +301,8 @@ py conciliar_ventas.py --inputs ... --outputs ... --desde 2026-04-01 --hasta 202
 ```
 
 ### 8.3 Ejecutable de escritorio
-Doble click en `dist/ConciliadorVentas.exe`, seleccionar los 5 archivos
-crudos, presionar PROCESAR.
+Doble click en `dist/ConciliadorVentas.exe`, seleccionar los 6 archivos
+crudos (incluido el libro de bancos), presionar PROCESAR.
 
 ### 8.4 Recompilar el ejecutable
 ```bash
@@ -315,18 +319,18 @@ pip install -r requirements.txt
 
 ## 9. Próximos pasos recomendados (priorizados)
 
-1. **Cerrar la subida a Git** — commitear y pushear la GUI + ejecutable
-   (quedó a medias).
-2. **Probar el ejecutable** end-to-end con la muestra (prueba interactiva del
-   usuario; confirmar que el resumen muestra 73 tiendas / 819 discrepancias).
-3. **Conseguir los códigos contables (P1)** — desbloquea la importación real a
-   SAP de los asientos.
-4. **Conseguir la plantilla SAP B1 (P2)** — valida el formato del asiento.
-5. **Debug del caso B1** (MIS.PI01 MC con DEBE negativo).
-6. **Loaders Scotiabank y Pichincha (P3)** — cuando lleguen archivos de
+1. **Completar los 8 códigos contables (P1)** — desbloquea los 42 asientos
+   hoy omitidos; es el único bloqueante real para cargar el resultado en SAP.
+2. **Smoke-test del ejecutable** — doble click en `dist/ConciliadorVentas.exe`,
+   procesar la muestra y verificar la ventana (la lógica ya está testeada;
+   falta la verificación visual interactiva).
+3. **Conseguir la plantilla SAP B1 (P2)** — validar el formato de `sap_b1.py`.
+4. **Loaders Scotiabank y Pichincha (P3)** — cuando lleguen extractos de
    muestra; cubre 22 conciliaciones hoy omitidas.
-7. **Tests del dominio (P6)** — antes de pasar de demo a producción.
-8. **Validar contra un período completo** distinto a la muestra de abril.
+5. **Tests unitarios de loaders** — con archivos sintéticos (hoy se ejercitan
+   vía el test e2e).
+6. **Validar contra un período completo** distinto a la muestra de abril.
+7. **Commitear** las mejoras de esta iteración.
 
 ---
 

@@ -10,12 +10,15 @@ en el archivo de Cierre por tienda.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from datetime import date
 from decimal import Decimal
-from typing import Iterable
 
 from ..modelos import (
-    DiferenciaConciliacion, LineaCierreCaja, MedioPago, TipoTransaccion,
+    DiferenciaConciliacion,
+    LineaCierreCaja,
+    MedioPago,
+    TipoTransaccion,
     TransaccionMedioPago,
 )
 

@@ -13,14 +13,19 @@ Patrón documentado en el PDF (ejemplo Mastercard tienda Schell):
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date
 from decimal import Decimal
-from typing import Iterable
 
-from ..config import ConfiguracionCuentas
+from ..config import ConfiguracionCuentas, es_placeholder
 from ..modelos import (
-    Asiento, LineaAsiento, MatchDeposito, MedioPago, Tienda,
-    TipoTransaccion, TransaccionMedioPago,
+    Asiento,
+    LineaAsiento,
+    MatchDeposito,
+    MedioPago,
+    Tienda,
+    TipoTransaccion,
+    TransaccionMedioPago,
 )
 
 
@@ -67,6 +72,23 @@ def construir_asiento(
     total_extornos = _total_extornos(transacciones)
     comision = total_a_cancelar - total_debitos - total_extornos
 
+    # Un asiento con un codigo placeholder (XXX/PENDIENTE) no es importable a
+    # SAP. Se valida solo lo que este asiento realmente usa y se aborta con un
+    # mensaje claro; el llamador lo omite y continua con el resto.
+    faltantes: list[str] = []
+    if es_placeholder(cuenta_socio_banco):
+        faltantes.append(f"banco {banco_nombre} (codigo_socio_sap)")
+    if total_extornos > 0 and es_placeholder(cuentas.cliente_generico_codigo):
+        faltantes.append("cliente generico (codigo_socio)")
+    if comision != 0:
+        _prov = cuentas.proveedores_comision[medio]
+        if es_placeholder(_prov.codigo_socio) or es_placeholder(_prov.cuenta_asociada):
+            faltantes.append(f"proveedor comision {medio.value}")
+    if faltantes:
+        raise ValueError(
+            "codigos contables pendientes en cuentas.yaml: " + ", ".join(faltantes)
+        )
+
     # Rango de fechas para la glosa
     fechas = [mov.fecha_operacion for mov in movimientos_banco]
     if fechas:
@@ -110,17 +132,29 @@ def construir_asiento(
             fecha_vencimiento=fecha_corte,
         ))
 
-    # ---- Línea comisión: DEBE proveedor de la pasarela ----
+    # ---- Línea comisión: residuo del asiento, va al proveedor ----
+    # Normalmente el residuo es la comisión bancaria (DEBE). Si los depósitos
+    # más los extornos superan el total a cancelar, el residuo es negativo: se
+    # registra como CRÉDITO (un DEBE negativo sería un asiento inválido) y se
+    # marca el asiento para revisión contable.
+    advertencias: list[str] = []
     if comision != 0:
         prov = cuentas.proveedores_comision[medio]
         lineas.append(LineaAsiento(
             cuenta_mayor=prov.codigo_socio,
             nombre_cuenta=prov.nombre,
             cuenta_asociada=prov.cuenta_asociada,
-            debito=comision,
+            debito=comision if comision > 0 else Decimal("0"),
+            credito=-comision if comision < 0 else Decimal("0"),
             proyecto=tienda.codigo_proyecto,
             fecha_vencimiento=fecha_corte,
         ))
+        if comision < 0:
+            advertencias.append(
+                f"Residuo de comisión negativo ({comision}): los depósitos y "
+                f"extornos superan el total a cancelar; revisar (posibles "
+                f"extornos de un período anterior)."
+            )
 
     return Asiento(
         fecha_contabilizacion=fecha_corte,
@@ -131,4 +165,5 @@ def construir_asiento(
         medio_pago=medio,
         id_tienda=tienda.id_sap,
         lineas=lineas,
+        advertencias=advertencias,
     )

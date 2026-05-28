@@ -6,10 +6,10 @@ hiddenimports += collect_submodules('pandas')
 
 
 a = Analysis(
-    ['C:\\Users\\s_ara\\OneDrive\\Escritorio\\Proyectos\\cobranzas\\conciliar_gui.py'],
+    ['D:\\proyectos\\cobranzas\\.claude\\worktrees\\intelligent-chaum-ce5e03\\conciliar_gui.py'],
     pathex=[],
     binaries=[],
-    datas=[('C:\\Users\\s_ara\\OneDrive\\Escritorio\\Proyectos\\cobranzas\\config\\cuentas.yaml', 'config'), ('C:\\Users\\s_ara\\OneDrive\\Escritorio\\Proyectos\\cobranzas\\config\\tiendas.yaml', 'config')],
+    datas=[('D:\\proyectos\\cobranzas\\.claude\\worktrees\\intelligent-chaum-ce5e03\\config\\cuentas.yaml', 'config'), ('D:\\proyectos\\cobranzas\\.claude\\worktrees\\intelligent-chaum-ce5e03\\config\\tiendas.yaml', 'config')],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

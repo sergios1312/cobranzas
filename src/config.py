@@ -12,6 +12,16 @@ import yaml
 from .modelos import MedioPago, Tienda
 
 
+def es_placeholder(codigo: str | None) -> bool:
+    """True si el valor es un marcador pendiente (XXX / PENDIENTE / vacio) y
+    no un codigo contable real. Un asiento construido con uno de estos valores
+    no seria importable a SAP, por lo que el pipeline debe omitirlo."""
+    if codigo is None:
+        return True
+    s = str(codigo).strip().upper()
+    return s == "" or s == "PENDIENTE" or "XXX" in s
+
+
 @dataclass
 class Banco:
     codigo_socio_sap: str
@@ -42,6 +52,23 @@ class ConfiguracionCuentas:
     cliente_generico_cuenta_asociada: str
     proveedores_comision: dict[MedioPago, ProveedorComision]
     tolerancia_conciliacion: Decimal
+
+    def placeholders_pendientes(self) -> list[str]:
+        """Describe cada codigo placeholder presente en la configuracion.
+        Lista vacia = el plan de cuentas esta completo."""
+        faltan: list[str] = []
+        for medio, cuenta in self.cuentas_puente.items():
+            if es_placeholder(cuenta):
+                faltan.append(f"cuenta puente {medio.value}")
+        for nombre, banco in self.bancos.items():
+            if es_placeholder(banco.codigo_socio_sap):
+                faltan.append(f"banco {nombre} (codigo_socio_sap)")
+        for medio, prov in self.proveedores_comision.items():
+            if es_placeholder(prov.codigo_socio):
+                faltan.append(f"proveedor comision {medio.value} (codigo_socio)")
+            if es_placeholder(prov.cuenta_asociada):
+                faltan.append(f"proveedor comision {medio.value} (cuenta_asociada)")
+        return faltan
 
 
 def _parse_filtros(raw: dict[str, Any]) -> FiltroPorBancoMedio:

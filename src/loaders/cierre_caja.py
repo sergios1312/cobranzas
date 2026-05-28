@@ -19,7 +19,6 @@ import pandas as pd
 
 from ..modelos import LineaCierreCaja, MedioPago
 
-
 # Mapeo de nombre de columna del Excel (UPPER) → MedioPago canonico.
 # Solo se incluyen medios para los que el enum tiene valor.
 COLUMNAS_MEDIO_PAGO = {

@@ -20,7 +20,10 @@ from pathlib import Path
 import pandas as pd
 
 from ..modelos import (
-    MedioPago, PagoDiners, TipoTransaccion, TransaccionMedioPago,
+    MedioPago,
+    PagoDiners,
+    TipoTransaccion,
+    TransaccionMedioPago,
 )
 
 

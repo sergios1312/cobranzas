@@ -20,15 +20,20 @@
       "Bash(rm -f salidas/*.xlsx 2>/dev/null && py main.py --inputs \"Muestra al 30.04/\" --outputs ./salidas/ --desde 2026-04-01 --hasta 2026-04-30 --tiendas MIS.MI01 2>&1 | tail -8)",
       "Bash(py conciliar_ventas.py --inputs \"Muestra al 30.04/\" --outputs ./resultados/)",
       "Bash(py conciliar_ventas.py --inputs \"Muestra al 30.04/\" --outputs ./resultados/ --tiendas MIS.MI01 --solo-discrepancias)",
-      "Bash(py conciliar_ventas.py --inputs \"Muestra al 30.04/\" --outputs ./resultados/ --tiendas MIS.MI01)",
-      "Bash(py -m pip install --user --quiet pyinstaller)",
-      "Bash(py -m PyInstaller --version)",
-      "Bash(py build_exe.py)",
-      "Bash(./ConciliadorVentas.exe)",
-      "Bash(tasklist)",
-      "Bash(gh repo *)",
-      "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(xargs wc -l)",
+      "Bash(xargs -0 du -ch)",
+      "Bash(git pull *)",
+      "Bash(git fetch *)",
+      "Bash(git stash *)",
+      "Bash(py -c \"import pypdf; print\\('PYPDF OK', pypdf.__version__\\)\")",
+      "Bash(py -c \"import pdfplumber; print\\('PDFPLUMBER OK'\\)\")",
+      "Read(//d/proyectos/cobranzas/.venv/Scripts/**)",
+      "Bash(py -m pip install pypdf --quiet)",
+      "Bash(py -c \"import pypdf; print\\('pypdf', pypdf.__version__\\)\")",
+      "Bash(.venv/Scripts/python.exe \"C:\\\\Users\\\\Usuario\\\\AppData\\\\Local\\\\Temp\\\\inspect_muestra.py\")",
+      "Bash(.venv/Scripts/python.exe conciliar_ventas.py --inputs \"Muestra al 30.04\" --outputs resultados)",
+      "Bash(.venv/Scripts/python.exe -m py_compile main.py src/modelos.py src/asiento/generador.py)",
+      "Bash(.venv/Scripts/python.exe main.py --inputs \"Muestra al 30.04\" --outputs \"C:\\\\Users\\\\Usuario\\\\AppData\\\\Local\\\\Temp\\\\cobranzas_test\" --desde 2026-04-01 --hasta 2026-04-30 --tiendas MIS.PI01)"
     ]
   }
 }

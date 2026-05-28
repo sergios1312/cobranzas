@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
 
 
 class MedioPago(str, Enum):
@@ -56,15 +55,15 @@ class TransaccionMedioPago:
     medio_pago: MedioPago
     codigo_comercio: str
     fecha_proceso: date
-    fecha_abono: Optional[date]
+    fecha_abono: date | None
     importe_bruto: Decimal
     comision: Decimal
     igv: Decimal
     importe_neto: Decimal
-    voucher: Optional[str] = None
-    autorizacion: Optional[str] = None
+    voucher: str | None = None
+    autorizacion: str | None = None
     tipo: TipoTransaccion = TipoTransaccion.COMPRA
-    orden_pago: Optional[str] = None  # solo aplica a Diners (cruza con PagoDiners)
+    orden_pago: str | None = None  # solo aplica a Diners (cruza con PagoDiners)
 
 
 @dataclass
@@ -78,8 +77,10 @@ class PagoDiners:
     comision: Decimal
     igv: Decimal
     estado: str                   # 'PAGADO' | otros
-    orden_pago: Optional[str] = None  # cruza 1-a-1 con TransaccionMedioPago.orden_pago de ventas Diners
-    importe_total_consumos: Decimal = Decimal("0")  # bruto total que el pago dice cubrir; sirve para detectar pagos multi-periodo
+    # cruza 1-a-1 con TransaccionMedioPago.orden_pago de las ventas Diners
+    orden_pago: str | None = None
+    # bruto total que el pago dice cubrir; detecta pagos multi-período
+    importe_total_consumos: Decimal = Decimal("0")
 
 
 @dataclass
@@ -99,22 +100,22 @@ class Tienda:
     id_sap: str
     nombre: str
     codigo_proyecto: str
-    codigo_comercio_mc_amex: Optional[str] = None
-    codigo_comercio_diners: Optional[str] = None
-    banco_mc: Optional[str] = None
-    banco_amex: Optional[str] = None
-    banco_diners: Optional[str] = None
-    banco_efectivo: Optional[str] = None
-    banco_visa_puntos: Optional[str] = None
-    encargado: Optional[str] = None
+    codigo_comercio_mc_amex: str | None = None
+    codigo_comercio_diners: str | None = None
+    banco_mc: str | None = None
+    banco_amex: str | None = None
+    banco_diners: str | None = None
+    banco_efectivo: str | None = None
+    banco_visa_puntos: str | None = None
+    encargado: str | None = None
 
     @property
-    def prefijo_descripcion_mc(self) -> Optional[str]:
+    def prefijo_descripcion_mc(self) -> str | None:
         if self.codigo_comercio_mc_amex is None or self.codigo_comercio_mc_amex == "PENDIENTE":
             return None
         return "00" + self.codigo_comercio_mc_amex
 
-    def banco_para(self, medio: "MedioPago") -> Optional[str]:
+    def banco_para(self, medio: MedioPago) -> str | None:
         if medio == MedioPago.MASTERCARD:
             return self.banco_mc
         if medio == MedioPago.AMEX:
@@ -190,12 +191,12 @@ class MatchDeposito:
 class LineaAsiento:
     cuenta_mayor: str           # cuenta contable o código de Socio de Negocio
     nombre_cuenta: str
-    cuenta_asociada: Optional[str] = None
+    cuenta_asociada: str | None = None
     debito: Decimal = Decimal("0")
     credito: Decimal = Decimal("0")
     referencia_1: str = ""
     referencia_2: str = ""
-    fecha_vencimiento: Optional[date] = None
+    fecha_vencimiento: date | None = None
     proyecto: str = ""
 
 
@@ -209,6 +210,7 @@ class Asiento:
     medio_pago: MedioPago
     id_tienda: str
     lineas: list[LineaAsiento] = field(default_factory=list)
+    advertencias: list[str] = field(default_factory=list)
 
     def total_debito(self) -> Decimal:
         return sum((l.debito for l in self.lineas), Decimal("0"))
@@ -218,3 +220,8 @@ class Asiento:
 
     def balanceado(self, tolerancia: Decimal = Decimal("0.01")) -> bool:
         return abs(self.total_debito() - self.total_credito()) <= tolerancia
+
+    def requiere_revision(self, tolerancia: Decimal = Decimal("0.01")) -> bool:
+        """True si el asiento debe revisarse a mano antes de cargarlo a SAP:
+        tiene advertencias o no balancea."""
+        return bool(self.advertencias) or not self.balanceado(tolerancia)

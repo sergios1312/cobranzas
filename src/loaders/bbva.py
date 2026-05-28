@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..modelos import MovimientoBancario
+from ._comun import texto_id
 
 
 def _parse_decimal(v) -> Decimal:
@@ -16,7 +17,8 @@ def _parse_decimal(v) -> Decimal:
     return Decimal(str(v).replace(",", ""))
 
 
-def cargar(path: str | Path, cuenta: str = "", *, sheet_name: str = "BBVA") -> list[MovimientoBancario]:
+def cargar(path: str | Path, cuenta: str = "", *,
+           sheet_name: str = "BBVA") -> list[MovimientoBancario]:
     """Lee el Excel de movimientos BBVA.
 
     El extracto BBVA presenta el importe como una única columna 'Importe'
@@ -52,7 +54,7 @@ def cargar(path: str | Path, cuenta: str = "", *, sheet_name: str = "BBVA") -> l
             fecha_proceso=pd.to_datetime(fila.get("F. Valor") or fecha_op).date(),
             banco="BBVA",
             cuenta=cuenta,
-            nro_operacion=str(fila.get("Nº. Doc.", "")).strip(),
+            nro_operacion=texto_id(fila.get("Nº. Doc.")),
             descripcion=str(fila.get("Concepto", "")).strip(),
             abono=abono,
             cargo=cargo,

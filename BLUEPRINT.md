@@ -308,10 +308,11 @@ Una entrada por tienda. Campos por tienda:
 
 ## 7. Estado del código
 
-Validado contra la muestra real de abril 2026 (`Muestra al 30.04/`).
-Pipeline end-to-end funcional: **58 asientos balanceados / 76 reportes** de 81
-tiendas, **22 conciliaciones omitidas** por bancos sin loader (Scotiabank,
-Pichincha).
+Validado contra la muestra real de abril 2026 (`Muestra al 30.04/`) y cubierto
+por una suite de tests (`pytest`). Pipeline end-to-end funcional: **16 asientos
+válidos / 76 reportes** de 81 tiendas; **42 asientos omitidos** por códigos
+contables pendientes y **22 conciliaciones omitidas** por bancos sin loader
+(Scotiabank, Pichincha).
 
 | Componente | Estado | Comentario |
 |---|---|---|
@@ -328,15 +329,19 @@ Pichincha).
 | `loaders/bcp.py` | ✅ Validado | Estructura tipo BBVA, hoja `BCP 94` |
 | `exporters/reporte_tienda.py` | ✅ Validado | 6+2 hojas: CIERRE, MASTERCARD, MC_RESUMEN, AMEX, AMEX_RESUMEN, DINERS, Diners Pagos, Bancos |
 | `exporters/sap_b1.py` | 🟡 Tentativo | Formato basado en pantalla del PDF; validar contra plantilla SAP real |
-| `main.py` | ✅ Validado | Orquesta los 81 tiendas; descubre archivos por glob; reporta tiendas omitidas |
-| `config/cuentas.yaml` | 🟡 Parcial | 7 placeholders pendientes: socio SAP de BBVA/BCP/SCOTIA/PICHINCHA + proveedor comisión AMEX/Diners |
+| `pipeline.py` | ✅ Validado | Pipeline completo (pasos 2-5) compartido por la CLI y la GUI |
+| `main.py` | ✅ Validado | CLI delgada sobre `pipeline.py`; filtra los insumos por `--desde/--hasta` |
+| `conciliar_gui.py` | ✅ Validado | GUI del proceso completo sobre `pipeline.py` |
+| `config/cuentas.yaml` | 🟡 Parcial | 8 placeholders pendientes (socio SAP de BBVA/BCP/SCOTIA/PICHINCHA + proveedor comisión AMEX/Diners); el pipeline los detecta y omite esos asientos |
 | `config/tiendas.yaml` | ✅ Generado | 81 tiendas desde el Excel maestro, bancos normalizados |
-| Tests | 🔴 No existe | Pendiente — ver §9 |
+| Tests | ✅ 39 tests | `pytest` en verde; `mypy` y `ruff` limpios — ver §9 |
 
 ### Casos residuales conocidos (MVP)
 
-- **1 asiento con DEBE negativo**: MIS.PI01 MASTERCARD (−1,873.32). Caso MC no
-  cubierto por el filtro Diners multi-período. Pendiente de debug específico.
+- **Residuo de comisión negativo** (caso MIS.PI01 MC, −1,873.32): cuando los
+  depósitos más los extornos superan el total a cancelar, el residuo se
+  registra como CRÉDITO (no como DEBE negativo) y el asiento se marca en
+  `Asiento.advertencias` para revisión contable.
 - **AMEX**: 2 días de Schell (30-31/03) marcados como diferencia significativa
   porque están en el CSV pero fuera del cierre del mes; comportamiento
   esperado (período de cobertura distinto).

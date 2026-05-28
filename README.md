@@ -45,9 +45,12 @@ BBVA), con generación final de archivo importable a SAP Business One.
 
 ## Estado actual
 
-**MVP funcional end-to-end** contra la muestra `Muestra al 30.04/`:
-58 asientos balanceados, 76 reportes, 22 omitidos (bancos sin loader).
-Reproduce el ejemplo Schell del PDF al céntimo (HABER 168,769.84).
+**MVP funcional end-to-end** (pasos 2-5 del proceso) contra la muestra
+`Muestra al 30.04/`, vía CLI (`main.py`) o ejecutable de escritorio. La lógica
+vive en `src/pipeline.py`. Con la muestra de abril: 16 asientos válidos, 76
+reportes; 42 asientos omitidos por códigos contables pendientes y 22
+conciliaciones omitidas por bancos sin loader. Reproduce el ejemplo Schell del
+PDF al céntimo (HABER 168,769.84), verificado por un test e2e.
 
 | Pieza | Estado |
 |---|---|
@@ -57,20 +60,23 @@ Reproduce el ejemplo Schell del PDF al céntimo (HABER 168,769.84).
 | Loaders (6: cierre, izipay, diners, interbank, bbva, bcp) | ✅ Validados |
 | Exporter reporte por tienda | ✅ Validado |
 | Exporter SAP B1 | 🟡 Tentativo (validar plantilla real) |
-| Orquestador `main.py` | ✅ Validado |
+| Pipeline compartido (`pipeline.py`) + CLI `main.py` | ✅ Validado |
+| GUI / ejecutable (`conciliar_gui.py`) | ✅ Proceso completo |
 | `config/tiendas.yaml` | ✅ 81 tiendas desde catálogo Excel |
-| `config/cuentas.yaml` | 🟡 7 placeholders pendientes |
-| Tests | 🔴 No implementados |
+| `config/cuentas.yaml` | 🟡 8 placeholders pendientes (asientos afectados se omiten) |
+| Tests | ✅ 39 tests `pytest`; `mypy` y `ruff` limpios |
 | Loaders Scotiabank, Pichincha | 🔴 Sin muestras |
 
 ## Pendientes para producción
 
-1. **Códigos contables** en `cuentas.yaml` (7 placeholders):
-   - Socio SAP de BBVA, BCP, SCOTIABANK, PICHINCHA (hoy `104XXX`)
-   - Proveedor comisión AMEX y Diners: socio + nombre + cuenta asociada
-2. **Plantilla "Importar de Excel"** de SAP B1 oficial para validar el formato del exporter.
-3. **Archivos de muestra** de extractos Scotiabank y Pichincha (para implementar sus loaders).
-4. **1 caso residual**: asiento MIS.PI01 MC tiene DEBE negativo (S/−1,873) por motivos no identificados aún.
+1. **Códigos contables** en `cuentas.yaml` (8 placeholders): socio SAP de
+   BBVA/BCP/SCOTIABANK/PICHINCHA y proveedor de comisión (socio + cuenta) de
+   AMEX/Diners. El pipeline omite los asientos que los necesitan hasta que se
+   completen.
+2. **Plantilla "Importar de Excel"** de SAP B1 oficial para validar el formato
+   del exporter `sap_b1.py`.
+3. **Archivos de muestra** de extractos Scotiabank y Pichincha (para
+   implementar sus loaders).
 
 ## Setup
 

@@ -36,13 +36,13 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.config import cargar_cuentas, cargar_tiendas
-from src.loaders import cierre_caja, izipay, diners
-from src.modelos import (
-    LineaCierreCaja, MedioPago, TipoTransaccion, TransaccionMedioPago,
-)
 from src.conciliacion import ventas as concil_ventas
-
+from src.config import cargar_cuentas, cargar_tiendas
+from src.loaders import cierre_caja, diners, izipay
+from src.modelos import (
+    MedioPago,
+    TipoTransaccion,
+)
 
 MEDIOS = (MedioPago.MASTERCARD, MedioPago.AMEX, MedioPago.DINERS)
 
@@ -172,17 +172,19 @@ def conciliar_tienda(
     for d in difs:
         # Conteos auxiliares de la pasarela
         txns = reportes[d.medio_pago]
-        n_compras = sum(1 for t in txns if t.fecha_proceso == d.fecha and t.tipo == TipoTransaccion.COMPRA)
-        n_extornos = sum(1 for t in txns if t.fecha_proceso == d.fecha and t.tipo == TipoTransaccion.EXTORNO)
+        n_compras = sum(1 for t in txns if t.fecha_proceso == d.fecha
+                        and t.tipo == TipoTransaccion.COMPRA)
+        n_extornos = sum(1 for t in txns if t.fecha_proceso == d.fecha
+                         and t.tipo == TipoTransaccion.EXTORNO)
 
         filas.append({
             "id_tienda": tienda.id_sap,
             "nombre": tienda.nombre,
             "fecha": d.fecha,
             "medio": d.medio_pago.value,
-            "cierre_sap": float(d.total_cierre),
-            "pasarela": float(d.total_medio_pago),
-            "diferencia": float(d.diferencia),
+            "cierre_sap": d.total_cierre,
+            "pasarela": d.total_medio_pago,
+            "diferencia": d.diferencia,
             "estado": "OK" if not d.es_significativa(tolerancia) else "DISCREPANCIA",
             "txn_compras": n_compras,
             "txn_extornos": n_extornos,
@@ -193,11 +195,11 @@ def conciliar_tienda(
 def resumir(detalle: list[dict], tolerancia: Decimal) -> list[dict]:
     """Resumen por (tienda, medio): totales del periodo y conteo de discrepancias."""
     acc = defaultdict(lambda: {
-        "cierre_sap": 0.0,
-        "pasarela": 0.0,
+        "cierre_sap": Decimal("0"),
+        "pasarela": Decimal("0"),
         "fechas_total": 0,
         "fechas_con_diff": 0,
-        "monto_neto_diff": 0.0,
+        "monto_neto_diff": Decimal("0"),
     })
 
     for fila in detalle:
@@ -292,7 +294,8 @@ def imprimir_consola(resumen: list[dict], discrepancias: list[dict], solo_discre
         print("-" * 90)
         print("Top 10 (tienda, medio) por monto absoluto de discrepancia")
         print("-" * 90)
-        print(f"{'TIENDA':<12} {'MEDIO':<11} {'CIERRE':>14} {'PASARELA':>14} {'DIF TOTAL':>12} {'#DIFFS':>7}")
+        print(f"{'TIENDA':<12} {'MEDIO':<11} {'CIERRE':>14} "
+              f"{'PASARELA':>14} {'DIF TOTAL':>12} {'#DIFFS':>7}")
         for r in top:
             if r["monto_neto_diff"] == 0:
                 continue
@@ -306,7 +309,8 @@ def imprimir_consola(resumen: list[dict], discrepancias: list[dict], solo_discre
         print("-" * 90)
         print(f"Detalle de las {len(discrepancias)} discrepancias")
         print("-" * 90)
-        print(f"{'TIENDA':<12} {'FECHA':<12} {'MEDIO':<11} {'CIERRE':>12} {'PASARELA':>12} {'DIFF':>10}")
+        print(f"{'TIENDA':<12} {'FECHA':<12} {'MEDIO':<11} "
+              f"{'CIERRE':>12} {'PASARELA':>12} {'DIFF':>10}")
         for d in discrepancias[:60]:
             print(f"{d['id_tienda']:<12} {str(d['fecha']):<12} {d['medio']:<11} "
                   f"{d['cierre_sap']:>12,.2f} {d['pasarela']:>12,.2f} {d['diferencia']:>+10,.2f}")
