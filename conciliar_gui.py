@@ -34,7 +34,8 @@ from PySide6.QtWidgets import (
 
 import conciliar_ventas as cv
 from src.config import cargar_cuentas, cargar_tiendas
-from src.loaders import cierre_caja
+from src.loaders import cierre_caja, diners, izipay
+from src.modelos import MedioPago
 
 # (clave que usa cv.cargar_inputs_archivos, etiqueta visible, filtro filedialog)
 ARCHIVOS = [
@@ -42,7 +43,10 @@ ARCHIVOS = [
     ("mc",       "Reporte Mastercard (Izipay)", "CSV (*.csv)"),
     ("amex",     "Reporte AMEX (Izipay)", "CSV (*.csv)"),
     ("diners_v", "Diners — Ventas", "Excel (*.xlsx *.xls)"),
-    ("diners_p", "Diners — Pagos", "Excel (*.xlsx *.xls)"),
+    # ("diners_p", "Diners — Pagos", "Excel (*.xlsx *.xls)"),
+    # ↑ Solo se necesita para los pasos 4-5 (depósitos + asiento), no para
+    #   la conciliación de ventas que cubre esta GUI. Se reactiva quitando
+    #   el comentario cuando esos pasos se implementen.
 ]
 
 
@@ -270,13 +274,21 @@ class Worker(QThread):
             cuentas = cargar_cuentas(resource_path("config/cuentas.yaml"))
             tiendas = cargar_tiendas(resource_path("config/tiendas.yaml"))
 
-            insumos = cv.cargar_inputs_archivos(
-                cierre_path=Path(self.rutas["cierre"]),
-                mc_path=Path(self.rutas["mc"]),
-                amex_path=Path(self.rutas["amex"]),
-                diners_v_path=Path(self.rutas["diners_v"]),
-                diners_p_path=Path(self.rutas["diners_p"]),
-            )
+            # Carga directa de los 4 reportes necesarios para los pasos 2-3.
+            # `pagos_diners` queda vacío: solo es necesario para los pasos
+            # 4-5 (conciliación de depósitos + asiento), no para la
+            # conciliación de ventas. La función cv.cargar_inputs_archivos
+            # sigue intacta y se usará cuando esos pasos entren a la GUI.
+            insumos = {
+                "cierre": cierre_caja.cargar(Path(self.rutas["cierre"])),
+                "txn_mc": izipay.cargar(Path(self.rutas["mc"]),
+                                        MedioPago.MASTERCARD),
+                "txn_amex": izipay.cargar(Path(self.rutas["amex"]),
+                                          MedioPago.AMEX),
+                "txn_diners": diners.cargar_ventas(
+                    Path(self.rutas["diners_v"])),
+                "pagos_diners": [],
+            }
             insumos = cv.filtrar_por_periodo(insumos, self.desde, self.hasta)
 
             n_sap = len(insumos["cierre"])
