@@ -329,12 +329,60 @@ class Worker(QThread):
                 v = por_medio[m]
                 marca = "OK" if abs(v["dif"]) <= tol else "REV"
                 etiqueta = f"{m[:10]:<10}"
+                fechas_act = sum(r["fechas_activas"] for r in resumen
+                                 if r["medio"] == m)
+                fechas_diff = sum(r["fechas_con_diff"] for r in resumen
+                                  if r["medio"] == m)
                 self._log(
                     f"{etiqueta}&nbsp; cuadre&nbsp;&nbsp;"
                     f"S/&nbsp;{v['pasarela']:>14,.2f}&nbsp;&nbsp;"
-                    f"dif&nbsp;S/&nbsp;{v['dif']:>+10,.2f}",
+                    f"dif&nbsp;S/&nbsp;{v['dif']:>+10,.2f}&nbsp;&nbsp;"
+                    f"({fechas_diff}/{fechas_act} fechas con dif.)",
                     marca=marca,
                 )
+
+            # Totales globales
+            self._hr()
+            n_tiendas = len({r["id_tienda"] for r in resumen})
+            n_filas = len(resumen)
+            total_cierre = sum((r["cierre_sap"] for r in resumen),
+                               Decimal("0"))
+            total_pasarela = sum((r["pasarela"] for r in resumen),
+                                 Decimal("0"))
+            diff_neta = total_cierre - total_pasarela
+            self._log("<b>TOTAL GLOBAL</b>")
+            self._log(f"&nbsp;&nbsp;Tiendas analizadas:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                      f"{n_tiendas}")
+            self._log(f"&nbsp;&nbsp;Filas (tienda × medio):&nbsp;&nbsp;{n_filas}")
+            self._log(f"&nbsp;&nbsp;Total Cierre SAP:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                      f"S/&nbsp;{total_cierre:>16,.2f}")
+            self._log(f"&nbsp;&nbsp;Total Pasarela:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                      f"S/&nbsp;{total_pasarela:>16,.2f}")
+            self._log(f"&nbsp;&nbsp;Diferencia neta:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                      f"S/&nbsp;{diff_neta:>+16,.2f}")
+            self._log(f"&nbsp;&nbsp;Discrepancias detectadas:&nbsp;&nbsp;"
+                      f"<b>{len(discrepancias)}</b>")
+
+            # Top discrepancias
+            if discrepancias:
+                self._hr()
+                self._log("<b>TOP 15 — Tiendas con mayor discrepancia "
+                          "(monto absoluto)</b>")
+                self._log(
+                    f"&nbsp;&nbsp;{'TIENDA':<14}{'MEDIO':<13}"
+                    f"{'DIFERENCIA':>14}&nbsp;&nbsp;{'DÍAS':>4}"
+                )
+                top = sorted(
+                    [r for r in resumen if r["monto_neto_diff"] != 0],
+                    key=lambda r: -abs(r["monto_neto_diff"]))[:15]
+                for r in top:
+                    self._log(
+                        f"&nbsp;&nbsp;{r['id_tienda']:<14}"
+                        f"{r['medio']:<13}"
+                        f"S/&nbsp;{r['monto_neto_diff']:>+11,.2f}"
+                        f"&nbsp;&nbsp;{r['fechas_con_diff']:>4}"
+                    )
+
             self._hr()
 
             # Exportar Excel
