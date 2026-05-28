@@ -1,19 +1,17 @@
-"""Interfaz gráfica para los pasos 2 y 3 del proceso de cobranzas.
+"""Interfaz gráfica del ejecutable de conciliación de ventas (pasos 2-3).
 
-El usuario carga los 5 reportes del período (Cierre SAP, Mastercard y AMEX
-de Izipay, y los dos de Diners), ajusta el rango de fechas si quiere acotar
-el período y presiona Procesar. La app consolida los reportes por tienda y
-los coteja contra el Cierre Caja Resumen, mostrando qué cuadra y dónde hay
-diferencias, y exportando un Excel con Resumen, Detalle y Discrepancias.
+Diseño PySide6 — Variación A "grafito" con IBM Plex (ver `desktop/entrega/`).
+El usuario carga los 5 reportes del período, ajusta el rango de fechas
+(autollenado al cargar el Cierre) y procesa la conciliación contra el
+Cierre Caja Resumen.
 
-NO toca depósitos bancarios ni genera asientos contables — eso es el pipeline
-completo (`main.py`). Esta GUI cubre solo los pasos 2-3 del PDF.
+NO toca depósitos bancarios ni genera asientos — esa parte es el pipeline
+completo (`main.py`). Esta GUI cubre los pasos 2 y 3 del proceso del PDF.
 
-Los catálogos (`config/tiendas.yaml`, `config/cuentas.yaml`) van embebidos en
-el .exe (ver `resource_path`).
-
-Para correr como script:   py conciliar_gui.py
-Para empaquetar:           ver build_exe.py
+Catálogos (`config/tiendas.yaml`, `config/cuentas.yaml`) embebidos en el
+`.exe` vía `resource_path`. Las fuentes IBM Plex son opcionales: si la
+carpeta `fonts/` con los `.ttf` no existe, Qt usa la fuente del sistema y
+la app sigue luciendo limpia.
 """
 
 from __future__ import annotations
@@ -21,30 +19,39 @@ from __future__ import annotations
 import calendar
 import os
 import sys
-import threading
-import tkinter as tk
 import traceback
 from datetime import date, datetime
+from decimal import Decimal
 from pathlib import Path
-from tkinter import filedialog, messagebox, scrolledtext, ttk
+
+from PySide6.QtCore import QDate, QThread, Signal
+from PySide6.QtGui import QColor, QFontDatabase, QPalette
+from PySide6.QtWidgets import (
+    QApplication, QDateEdit, QFileDialog, QFrame, QGridLayout, QHBoxLayout,
+    QLabel, QLineEdit, QMessageBox, QPushButton, QTextEdit, QVBoxLayout,
+    QWidget,
+)
 
 import conciliar_ventas as cv
 from src.config import cargar_cuentas, cargar_tiendas
 from src.loaders import cierre_caja
 
-# (clave, etiqueta visible, tipos de archivo para el filedialog).
-# La clave coincide con los parámetros de cv.cargar_inputs_archivos.
+# (clave que usa cv.cargar_inputs_archivos, etiqueta visible, filtro filedialog)
 ARCHIVOS = [
-    ("cierre", "Cierre Caja (SAP)", [("Excel", "*.xlsx *.xls")]),
-    ("mc", "Mastercard (Izipay)", [("CSV", "*.csv")]),
-    ("amex", "AMEX (Izipay)", [("CSV", "*.csv")]),
-    ("diners_v", "Diners — Ventas", [("Excel", "*.xlsx *.xls")]),
-    ("diners_p", "Diners — Pagos", [("Excel", "*.xlsx *.xls")]),
+    ("cierre",   "Cierre Caja Resumen (SAP)", "Excel (*.xlsx *.xls)"),
+    ("mc",       "Reporte Mastercard (Izipay)", "CSV (*.csv)"),
+    ("amex",     "Reporte AMEX (Izipay)", "CSV (*.csv)"),
+    ("diners_v", "Diners — Ventas", "Excel (*.xlsx *.xls)"),
+    ("diners_p", "Diners — Pagos", "Excel (*.xlsx *.xls)"),
 ]
 
 
+# ──────────────────────────────────────────────────────────────────────────
+#  Recursos: rutas que sirven tanto en script como dentro del .exe
+# ──────────────────────────────────────────────────────────────────────────
 def resource_path(rel: str) -> Path:
-    """Resuelve un recurso embebido. Funciona como script y dentro del .exe."""
+    """Resuelve un recurso embebido (config/*.yaml, fonts/*.ttf). Funciona
+    como script y dentro del .exe de PyInstaller (sys._MEIPASS)."""
     base = getattr(sys, "_MEIPASS", os.path.abspath("."))
     return Path(base) / rel
 
@@ -56,297 +63,506 @@ def app_dir() -> Path:
     return Path(__file__).parent
 
 
+def cargar_fuentes() -> None:
+    """Carga IBM Plex desde `fonts/` si los .ttf están presentes. No falla
+    si la carpeta o los archivos no existen (Qt usa la fuente del sistema)."""
+    base = resource_path("fonts")
+    if not base.exists():
+        return
+    for nombre in ("IBMPlexSans-Regular.ttf", "IBMPlexSans-Medium.ttf",
+                   "IBMPlexSans-SemiBold.ttf", "IBMPlexSans-Bold.ttf",
+                   "IBMPlexMono-Regular.ttf", "IBMPlexMono-Medium.ttf"):
+        p = base / nombre
+        if p.exists():
+            QFontDatabase.addApplicationFont(str(p))
+
+
 def _bordes_del_mes(d: date) -> tuple[date, date]:
     """Primer y último día del mes al que pertenece `d`."""
     _, ultimo = calendar.monthrange(d.year, d.month)
     return d.replace(day=1), date(d.year, d.month, ultimo)
 
 
-def _parse_fecha(s: str) -> date | None:
-    """'YYYY-MM-DD' → date; vacío → None. ValueError si el formato es inválido."""
-    s = s.strip()
-    return datetime.strptime(s, "%Y-%m-%d").date() if s else None
+# ──────────────────────────────────────────────────────────────────────────
+#  Estilo (paleta grafito + IBM Plex)
+# ──────────────────────────────────────────────────────────────────────────
+QSS = """
+* { font-family: "IBM Plex Sans"; font-size: 14px; color: #1c1e22; }
+QWidget#root { background: #ffffff; }
+
+QLabel#h1    { font-size: 21px; font-weight: 600; }
+QLabel#sub   { color: #6c7077; font-size: 13px; }
+QLabel#grupo { color: #a0a3a9; font-size: 11px; font-weight: 600;
+               letter-spacing: 1px; }
+QLabel#campo { font-weight: 500; }
+QLabel#hint  { color: #a0a3a9; font-size: 11px; }
+
+/* Campo de archivo (frame con borde + ✓ verde) */
+QFrame#field            { background: #ffffff; border: 1px solid #d8dade;
+                          border-radius: 7px; }
+QFrame#field[focus="true"] { border: 1px solid #26282c; }
+QLabel#check { color: #2f8c5f; font-weight: 700; font-size: 13px; }
+
+/* Botón secundario (Examinar) */
+QPushButton {
+    background: #ffffff; border: 1px solid #d8dade; border-radius: 7px;
+    padding: 9px 16px; font-weight: 500; font-size: 13px;
+}
+QPushButton:hover   { background: #f2f2f4; }
+QPushButton:pressed { background: #e9e9ec; }
+
+/* Botón primario (Procesar) */
+QPushButton#primary {
+    background: #26282c; border: 1px solid #26282c; color: #ffffff;
+    font-weight: 600; padding: 13px; font-size: 14px;
+}
+QPushButton#primary:hover    { background: #373a3f; border-color: #373a3f; }
+QPushButton#primary:disabled { background: #c9cace; border-color: #c9cace;
+                               color: #ffffff; }
+
+/* Estado */
+QLabel#status            { color: #6c7077; font-size: 13px; }
+QLabel#status[ok="true"] { color: #2f8c5f; }
+QLabel#status[err="true"]{ color: #bb853c; }
+
+/* Line edits genéricos (carpeta de salida) */
+QLineEdit {
+    background: #ffffff; border: 1px solid #d8dade; border-radius: 7px;
+    padding: 8px 12px; font-family: "IBM Plex Mono"; font-size: 12px;
+}
+QLineEdit:focus { border: 1px solid #26282c; }
+
+/* DateEdit */
+QDateEdit {
+    background: #ffffff; border: 1px solid #d8dade; border-radius: 7px;
+    padding: 6px 10px; font-family: "IBM Plex Mono"; font-size: 12px;
+    min-width: 130px;
+}
+QDateEdit:focus { border: 1px solid #26282c; }
+
+/* Consola de resultados */
+QTextEdit {
+    background: #fbfbfc; border: 1px solid #e7e8ea; border-radius: 9px;
+    padding: 12px 14px; color: #1c1e22;
+}
+
+/* Scrollbars discretas */
+QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
+QScrollBar::handle:vertical { background: #d8dade; border-radius: 5px;
+                              min-height: 30px; }
+QScrollBar::handle:vertical:hover { background: #c2c4c9; }
+QScrollBar::add-line, QScrollBar::sub-line { height: 0; }
+QScrollBar::add-page, QScrollBar::sub-page { background: none; }
+"""
+
+# Colores para el HTML de la consola
+COL = {"t": "#a0a3a9", "ok": "#2f8c5f", "rev": "#bb853c", "hr": "#d8dade",
+       "err": "#c0392b"}
 
 
-class ConciliadorApp:
-    def __init__(self, root: tk.Tk):
-        self.root = root
-        root.title("Conciliación de ventas — Pasos 2 y 3")
-        root.geometry("840x680")
-        root.minsize(720, 580)
+# ──────────────────────────────────────────────────────────────────────────
+#  Campo de archivo: borde + nombre (mono) + ✓ verde al cargar
+# ──────────────────────────────────────────────────────────────────────────
+class Campo(QFrame):
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("field")
+        self.setFixedHeight(40)
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(12, 0, 12, 0)
+        lay.setSpacing(8)
 
-        self.vars: dict[str, tk.StringVar] = {k: tk.StringVar() for k, _, _ in ARCHIVOS}
-        self.var_desde = tk.StringVar()
-        self.var_hasta = tk.StringVar()
-        self.var_salida = tk.StringVar(value=str(app_dir() / "resultados"))
-        self.procesando = False
+        self.edit = QLineEdit()
+        self.edit.setReadOnly(True)
+        self.edit.setPlaceholderText("Ningún archivo seleccionado")
+        self.edit.setStyleSheet(
+            "background:transparent;border:none;"
+            "font-family:'IBM Plex Mono';font-size:12px;"
+        )
+        pal = self.edit.palette()
+        pal.setColor(QPalette.PlaceholderText, QColor("#a0a3a9"))
+        self.edit.setPalette(pal)
 
-        self._construir_ui()
+        self.check = QLabel("✓")
+        self.check.setObjectName("check")
+        self.check.hide()
 
-    def _construir_ui(self):
-        cont = ttk.Frame(self.root, padding=14)
-        cont.pack(fill="both", expand=True)
+        lay.addWidget(self.edit, 1)
+        lay.addWidget(self.check)
 
-        ttk.Label(
-            cont, text="Conciliación de ventas (pasos 2-3 del proceso)",
-            font=("Segoe UI", 12, "bold"),
-        ).pack(anchor="w", pady=(0, 4))
-        ttk.Label(
-            cont, foreground="#555",
-            text="Carga los 5 reportes del período. Las fechas se llenan "
-                 "solas al elegir el Cierre; puedes editarlas para acotar.",
-        ).pack(anchor="w", pady=(0, 12))
+        self._ruta = ""
 
-        # --- Botones de carga + ruta ---
-        grid = ttk.Frame(cont)
-        grid.pack(fill="x")
-        grid.columnconfigure(1, weight=1)
-        for fila, (clave, etiqueta, tipos) in enumerate(ARCHIVOS):
-            ttk.Button(
-                grid, text=f"Cargar {etiqueta}", width=30,
-                command=lambda k=clave, t=tipos: self._elegir_archivo(k, t),
-            ).grid(row=fila, column=0, sticky="w", pady=3, padx=(0, 8))
-            ttk.Entry(
-                grid, textvariable=self.vars[clave], state="readonly",
-            ).grid(row=fila, column=1, sticky="ew", pady=3)
+    def set_ruta(self, ruta: str) -> None:
+        self._ruta = ruta
+        self.edit.setText(Path(ruta).name if ruta else "")
+        self.check.setVisible(bool(ruta))
 
-        # --- Rango de fechas ---
-        fechas = ttk.Frame(cont)
-        fechas.pack(fill="x", pady=(14, 0))
-        ttk.Label(fechas, text="Desde (YYYY-MM-DD):").grid(
-            row=0, column=0, sticky="w", padx=(0, 6))
-        ttk.Entry(fechas, textvariable=self.var_desde, width=14).grid(
-            row=0, column=1)
-        ttk.Label(fechas, text="   Hasta:").grid(row=0, column=2, padx=(12, 6))
-        ttk.Entry(fechas, textvariable=self.var_hasta, width=14).grid(
-            row=0, column=3)
-        ttk.Label(
-            fechas, foreground="#888",
-            text="   (se autollenan al cargar el Cierre — edita si quieres "
-                 "excluir días)",
-        ).grid(row=0, column=4, sticky="w", padx=(8, 0))
+    def ruta(self) -> str:
+        return self._ruta
 
-        # --- Carpeta de salida ---
-        sal = ttk.Frame(cont)
-        sal.pack(fill="x", pady=(12, 0))
-        sal.columnconfigure(1, weight=1)
-        ttk.Label(sal, text="Carpeta de resultados").grid(
-            row=0, column=0, sticky="w", padx=(0, 8))
-        ttk.Entry(sal, textvariable=self.var_salida).grid(
-            row=0, column=1, sticky="ew")
-        ttk.Button(sal, text="Examinar...", width=12,
-                   command=self._elegir_salida).grid(row=0, column=2, padx=(8, 0))
+    def hay(self) -> bool:
+        return bool(self._ruta)
 
-        # --- Acción ---
-        self.btn = ttk.Button(cont, text="PROCESAR", command=self._on_procesar)
-        self.btn.pack(fill="x", pady=(14, 6), ipady=6)
 
-        self.estado = ttk.Label(cont, text="Listo.", foreground="#0a7")
-        self.estado.pack(anchor="w")
+# ──────────────────────────────────────────────────────────────────────────
+#  Detector de fechas: corre cierre_caja.cargar() en hilo aparte
+# ──────────────────────────────────────────────────────────────────────────
+class DetectarFechas(QThread):
+    """Carga el Cierre y emite (primer_día_del_mes, último_día_del_mes) que
+    cubre el reporte, para autollenar los QDateEdit sin congelar la UI."""
+    detectado = Signal(object, object)  # (date, date) o (None, None)
 
-        ttk.Label(cont, text="Resultados:", font=("Segoe UI", 9, "bold")).pack(
-            anchor="w", pady=(8, 2))
-        self.salida = scrolledtext.ScrolledText(
-            cont, height=14, font=("Consolas", 9), wrap="none")
-        self.salida.pack(fill="both", expand=True)
-        self.salida.configure(state="disabled")
+    def __init__(self, path: str):
+        super().__init__()
+        self.path = path
 
-    # --------------------------------------------------------------- acciones
-    def _elegir_archivo(self, clave: str, tipos: list):
-        ruta = filedialog.askopenfilename(
-            title="Seleccionar archivo", filetypes=tipos + [("Todos", "*.*")])
-        if not ruta:
-            return
-        self.vars[clave].set(ruta)
-        # Al elegir el Cierre, autollenamos las fechas (en otro hilo: la carga
-        # puede tardar uno o dos segundos).
-        if clave == "cierre":
-            threading.Thread(
-                target=self._detectar_fechas_cierre, args=(ruta,),
-                daemon=True).start()
-
-    def _elegir_salida(self):
-        carpeta = filedialog.askdirectory(title="Carpeta de resultados")
-        if carpeta:
-            self.var_salida.set(carpeta)
-
-    def _detectar_fechas_cierre(self, path: str):
-        """Carga el Cierre y autollena Desde/Hasta con el primer y último día
-        del mes que cubre. Si el usuario ya tipeó fechas, no las pisa."""
-        if self.var_desde.get().strip() or self.var_hasta.get().strip():
-            return
+    def run(self):
         try:
-            fechas = [l.fecha for l in cierre_caja.cargar(path) if l.fecha]
-        except Exception:
-            return  # no se pudo leer; el usuario puede tipear a mano
-        if not fechas:
-            return
-        primero, _ = _bordes_del_mes(min(fechas))
-        _, ultimo = _bordes_del_mes(max(fechas))
-        self.root.after(0, self.var_desde.set, primero.isoformat())
-        self.root.after(0, self.var_hasta.set, ultimo.isoformat())
-
-    def _on_procesar(self):
-        if self.procesando:
-            return
-        faltantes = []
-        for clave, etiqueta, _ in ARCHIVOS:
-            ruta = self.vars[clave].get().strip()
-            if not ruta:
-                faltantes.append(etiqueta)
-            elif not Path(ruta).is_file():
-                messagebox.showerror("Archivo no encontrado", f"No existe:\n{ruta}")
+            lineas = cierre_caja.cargar(self.path)
+            fechas = [l.fecha for l in lineas if l.fecha]
+            if not fechas:
+                self.detectado.emit(None, None)
                 return
-        if faltantes:
-            messagebox.showwarning(
-                "Faltan archivos",
-                "Falta cargar:\n\n- " + "\n- ".join(faltantes))
-            return
-        try:
-            desde = _parse_fecha(self.var_desde.get())
-            hasta = _parse_fecha(self.var_hasta.get())
-        except ValueError:
-            messagebox.showerror(
-                "Fecha inválida",
-                "Las fechas deben tener formato YYYY-MM-DD (o vacías).")
-            return
-        if desde and hasta and desde > hasta:
-            messagebox.showerror(
-                "Rango inválido", "La fecha 'Desde' es posterior a 'Hasta'.")
-            return
+            primero, _ = _bordes_del_mes(min(fechas))
+            _, ultimo = _bordes_del_mes(max(fechas))
+            self.detectado.emit(primero, ultimo)
+        except Exception:
+            self.detectado.emit(None, None)
 
-        self.procesando = True
-        self.btn.configure(state="disabled")
-        self._set_estado("Procesando, puede tardar unos segundos...", "#c70")
-        self._escribir("", limpiar=True)
-        threading.Thread(
-            target=self._run, args=(desde, hasta), daemon=True).start()
 
-    # ---------------------------------------------------------------- proceso
-    def _run(self, desde: date | None, hasta: date | None):
+# ──────────────────────────────────────────────────────────────────────────
+#  Worker: corre la conciliación (pasos 2-3) en hilo aparte
+# ──────────────────────────────────────────────────────────────────────────
+class Worker(QThread):
+    linea = Signal(str)        # una línea HTML para la consola
+    terminado = Signal(int)    # número de discrepancias; -1 si hubo error
+
+    def __init__(self, rutas: dict, desde: date, hasta: date, salida: Path):
+        super().__init__()
+        self.rutas = rutas
+        self.desde = desde
+        self.hasta = hasta
+        self.salida = salida
+
+    def _ts(self) -> str:
+        return datetime.now().strftime("%H:%M:%S")
+
+    def _log(self, texto: str, marca: str | None = None) -> None:
+        html = (f'<span style="color:{COL["t"]}">[{self._ts()}]</span>'
+                f'&nbsp;&nbsp;{texto}')
+        if marca:
+            color = COL["ok"] if marca == "OK" else (
+                COL["rev"] if marca == "REV" else COL["err"])
+            html += (f' &nbsp;<span style="color:{color};'
+                     f'font-weight:600">{marca}</span>')
+        self.linea.emit(html)
+
+    def _hr(self) -> None:
+        self.linea.emit(
+            f'<span style="color:{COL["hr"]}">'
+            f'─────────────────────────────────────────────────'
+            f'</span>')
+
+    def run(self) -> None:
         try:
+            self._log(f"Iniciando conciliación · período "
+                      f"{self.desde.isoformat()} → {self.hasta.isoformat()}")
             cuentas = cargar_cuentas(resource_path("config/cuentas.yaml"))
             tiendas = cargar_tiendas(resource_path("config/tiendas.yaml"))
 
             insumos = cv.cargar_inputs_archivos(
-                cierre_path=Path(self.vars["cierre"].get()),
-                mc_path=Path(self.vars["mc"].get()),
-                amex_path=Path(self.vars["amex"].get()),
-                diners_v_path=Path(self.vars["diners_v"].get()),
-                diners_p_path=Path(self.vars["diners_p"].get()),
+                cierre_path=Path(self.rutas["cierre"]),
+                mc_path=Path(self.rutas["mc"]),
+                amex_path=Path(self.rutas["amex"]),
+                diners_v_path=Path(self.rutas["diners_v"]),
+                diners_p_path=Path(self.rutas["diners_p"]),
             )
-            insumos = cv.filtrar_por_periodo(insumos, desde, hasta)
+            insumos = cv.filtrar_por_periodo(insumos, self.desde, self.hasta)
+
+            n_sap = len(insumos["cierre"])
+            n_mc = len(insumos["txn_mc"])
+            n_amex = len(insumos["txn_amex"])
+            n_dv = len(insumos["txn_diners"])
+            n_dp = len(insumos["pagos_diners"])
+            self._log(f"SAP&nbsp;.............&nbsp;{n_sap:>6,}&nbsp;registros")
+            self._log(f"Mastercard&nbsp;......&nbsp;{n_mc:>6,}&nbsp;registros")
+            self._log(f"AMEX&nbsp;............&nbsp;{n_amex:>6,}&nbsp;registros")
+            self._log(f"Diners&nbsp;..........&nbsp;{n_dv:>6,}&nbsp;ventas&nbsp;·&nbsp;"
+                      f"{n_dp}&nbsp;pagos")
 
             tol = cuentas.tolerancia_conciliacion
             detalle: list[dict] = []
             for t in tiendas:
                 detalle.extend(cv.conciliar_tienda(t, insumos, tol))
             resumen = cv.resumir(detalle, tol)
-            discrepancias = [f for f in detalle if f["estado"] == "DISCREPANCIA"]
+            discrepancias = [f for f in detalle
+                             if f["estado"] == "DISCREPANCIA"]
 
+            self._hr()
+            # Resumen por medio (suma de cierre, pasarela y diferencia neta)
+            por_medio: dict[str, dict[str, Decimal]] = {}
+            for r in resumen:
+                m = r["medio"]
+                a = por_medio.setdefault(m, {
+                    "cierre": Decimal("0"),
+                    "pasarela": Decimal("0"),
+                    "dif": Decimal("0"),
+                })
+                a["cierre"] += r["cierre_sap"]
+                a["pasarela"] += r["pasarela"]
+                a["dif"] += r["monto_neto_diff"]
+            for m in ("MASTERCARD", "AMEX", "DINERS"):
+                if m not in por_medio:
+                    continue
+                v = por_medio[m]
+                marca = "OK" if abs(v["dif"]) <= tol else "REV"
+                etiqueta = f"{m[:10]:<10}"
+                self._log(
+                    f"{etiqueta}&nbsp; cuadre&nbsp;&nbsp;"
+                    f"S/&nbsp;{v['pasarela']:>14,.2f}&nbsp;&nbsp;"
+                    f"dif&nbsp;S/&nbsp;{v['dif']:>+10,.2f}",
+                    marca=marca,
+                )
+            self._hr()
+
+            # Exportar Excel
             if insumos["cierre"]:
                 fmin = min(l.fecha for l in insumos["cierre"])
                 fmax = max(l.fecha for l in insumos["cierre"])
                 periodo = f"{fmin.isoformat()}_{fmax.isoformat()}"
             else:
                 periodo = "vacio"
-            salida_dir = Path(self.var_salida.get().strip()
-                              or (app_dir() / "resultados"))
-            salida_dir.mkdir(parents=True, exist_ok=True)
-            ruta_excel = salida_dir / f"conciliacion_ventas_{periodo}.xlsx"
-            cv.exportar_excel(ruta_excel, detalle, resumen, discrepancias)
+            self.salida.mkdir(parents=True, exist_ok=True)
+            ruta = self.salida / f"conciliacion_ventas_{periodo}.xlsx"
+            cv.exportar_excel(ruta, detalle, resumen, discrepancias)
+            self._log(f"Excel generado:&nbsp;{ruta.name}")
+            self._log(f"Carpeta:&nbsp;{self.salida}")
 
-            texto = self._formatear(resumen, discrepancias, periodo, ruta_excel)
-            self.root.after(0, self._exito, texto, salida_dir)
-        except Exception as e:  # noqa: BLE001 — el detalle se muestra al usuario
-            self.root.after(0, self._error, str(e), traceback.format_exc())
+            self.terminado.emit(len(discrepancias))
+        except Exception as e:  # noqa: BLE001 — el detalle va a la consola
+            self._log(f"ERROR: {e}", marca="ERR")
+            self.linea.emit(
+                f'<pre style="color:{COL["err"]};font-family:\'IBM Plex Mono\';'
+                f'font-size:11px">{traceback.format_exc()}</pre>')
+            self.terminado.emit(-1)
 
-    def _formatear(self, resumen: list[dict], discrepancias: list[dict],
-                   periodo: str, ruta_excel: Path) -> str:
-        n_tiendas = len({r["id_tienda"] for r in resumen})
-        n_filas = len(resumen)
-        n_discrep = len(discrepancias)
-        suma_cierre = sum((r["cierre_sap"] for r in resumen), 0)
-        suma_pasarela = sum((r["pasarela"] for r in resumen), 0)
-        monto_neto = suma_cierre - suma_pasarela
 
-        lin = [
-            "=" * 78,
-            "  CONCILIACIÓN DE VENTAS — Resumen ejecutivo",
-            "=" * 78,
-            f"  Período:                      {periodo.replace('_', ' → ')}",
-            f"  Tiendas analizadas:           {n_tiendas}",
-            f"  Filas (tienda × medio):       {n_filas}",
-            f"  Total cierre SAP:             S/ {suma_cierre:>15,.2f}",
-            f"  Total reportado pasarelas:    S/ {suma_pasarela:>15,.2f}",
-            f"  Diferencia neta:              S/ {monto_neto:>+15,.2f}",
-            f"  Discrepancias detectadas:     {n_discrep}",
-            "",
-        ]
-        top = [r for r in sorted(resumen, key=lambda r: -abs(r["monto_neto_diff"]))[:10]
-               if r["monto_neto_diff"] != 0]
-        if top:
-            lin += [
-                "-" * 78,
-                "  Top 10 (tienda, medio) por monto absoluto de discrepancia",
-                "-" * 78,
-                f"  {'TIENDA':<12} {'MEDIO':<11} {'CIERRE':>14} "
-                f"{'PASARELA':>14} {'DIF TOTAL':>12} {'#DIFFS':>7}",
-            ]
-            for r in top:
-                lin.append(
-                    f"  {r['id_tienda']:<12} {r['medio']:<11} "
-                    f"{r['cierre_sap']:>14,.2f} {r['pasarela']:>14,.2f} "
-                    f"{r['monto_neto_diff']:>+12,.2f} "
-                    f"{r['fechas_con_diff']:>7}")
-        lin += [
-            "", "=" * 78,
-            f"  Excel exportado: {ruta_excel.name}",
-            f"  Carpeta:         {ruta_excel.parent}",
-            "=" * 78,
-        ]
-        return "\n".join(lin)
+# ──────────────────────────────────────────────────────────────────────────
+#  Ventana principal
+# ──────────────────────────────────────────────────────────────────────────
+class Ventana(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("root")
+        self.setWindowTitle("Conciliación de Ventas — Tiendas Físicas")
+        self.resize(960, 920)
+        self.campos: dict[str, Campo] = {}
+        self.detectador: DetectarFechas | None = None
+        self.worker: Worker | None = None
 
-    # --------------------------------------------------------------- callbacks
-    def _exito(self, texto: str, carpeta: Path):
-        self._escribir(texto, limpiar=True)
-        self._set_estado(f"Listo. Resultados en: {carpeta}", "#0a7")
-        self.procesando = False
-        self.btn.configure(state="normal")
-        if messagebox.askyesno(
-                "Proceso completado",
-                f"Resultados guardados en:\n{carpeta}\n\n¿Abrir la carpeta?"):
-            try:
-                os.startfile(carpeta)  # type: ignore[attr-defined]
-            except Exception:
-                pass
+        root = QVBoxLayout(self)
+        root.setContentsMargins(34, 30, 34, 30)
+        root.setSpacing(22)
 
-    def _error(self, mensaje: str, detalle: str):
-        self._escribir(f"ERROR:\n{mensaje}\n\n{detalle}", limpiar=True)
-        self._set_estado("Error al procesar.", "#c00")
-        self.procesando = False
-        self.btn.configure(state="normal")
-        messagebox.showerror("Error", f"No se pudo procesar:\n\n{mensaje}")
+        # — Encabezado —
+        h1 = QLabel("Conciliación de ventas")
+        h1.setObjectName("h1")
+        sub = QLabel("Mastercard · AMEX · Diners contra el Cierre SAP. "
+                     "Selecciona los archivos del período, ajusta las fechas "
+                     "y procesa.")
+        sub.setObjectName("sub")
+        sub.setWordWrap(True)
+        root.addWidget(h1)
+        root.addWidget(sub)
 
-    def _set_estado(self, texto: str, color: str):
-        self.estado.configure(text=texto, foreground=color)
+        # — Archivos de origen —
+        root.addWidget(self._rotulo("Archivos de origen"))
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(14)
+        grid.setVerticalSpacing(9)
+        grid.setColumnStretch(1, 1)
+        for i, (clave, etiqueta, tipos) in enumerate(ARCHIVOS):
+            lbl = QLabel(etiqueta)
+            lbl.setObjectName("campo")
+            lbl.setFixedWidth(218)
+            campo = Campo()
+            btn = QPushButton("Examinar")
+            btn.clicked.connect(
+                lambda _=False, c=campo, k=clave, t=tipos:
+                self._elegir_archivo(c, k, t))
+            grid.addWidget(lbl, i, 0)
+            grid.addWidget(campo, i, 1)
+            grid.addWidget(btn, i, 2)
+            self.campos[clave] = campo
+        root.addLayout(grid)
 
-    def _escribir(self, texto: str, limpiar: bool = False):
-        self.salida.configure(state="normal")
-        if limpiar:
-            self.salida.delete("1.0", "end")
-        self.salida.insert("end", texto)
-        self.salida.configure(state="disabled")
+        # — Período —
+        root.addWidget(self._rotulo("Período"))
+        fechas = QHBoxLayout()
+        fechas.setSpacing(10)
+        lbl_d = QLabel("Desde")
+        lbl_d.setObjectName("campo")
+        self.desde = QDateEdit()
+        self.desde.setCalendarPopup(True)
+        self.desde.setDisplayFormat("yyyy-MM-dd")
+        self.desde.setDate(QDate.currentDate())
+        lbl_h = QLabel("Hasta")
+        lbl_h.setObjectName("campo")
+        self.hasta = QDateEdit()
+        self.hasta.setCalendarPopup(True)
+        self.hasta.setDisplayFormat("yyyy-MM-dd")
+        self.hasta.setDate(QDate.currentDate())
+        hint = QLabel("se autollenan al cargar el Cierre — edítalas para "
+                      "acotar el período")
+        hint.setObjectName("hint")
+        fechas.addWidget(lbl_d)
+        fechas.addWidget(self.desde)
+        fechas.addSpacing(14)
+        fechas.addWidget(lbl_h)
+        fechas.addWidget(self.hasta)
+        fechas.addSpacing(14)
+        fechas.addWidget(hint, 1)
+        root.addLayout(fechas)
+
+        # — Carpeta de resultados —
+        root.addWidget(self._rotulo("Carpeta de resultados"))
+        fila = QHBoxLayout()
+        fila.setSpacing(14)
+        self.salida = QLineEdit(str(app_dir() / "resultados"))
+        btn_out = QPushButton("Examinar")
+        btn_out.clicked.connect(self._elegir_carpeta)
+        fila.addWidget(self.salida, 1)
+        fila.addWidget(btn_out)
+        root.addLayout(fila)
+
+        # — Botón + estado —
+        self.btn_procesar = QPushButton("Procesar conciliación")
+        self.btn_procesar.setObjectName("primary")
+        self.btn_procesar.clicked.connect(self._procesar)
+        root.addWidget(self.btn_procesar)
+
+        self.status = QLabel("● Listo")
+        self.status.setObjectName("status")
+        root.addWidget(self.status)
+
+        # — Consola —
+        root.addWidget(self._rotulo("Resultados"))
+        self.consola = QTextEdit()
+        self.consola.setReadOnly(True)
+        self.consola.setMinimumHeight(220)
+        root.addWidget(self.consola, 1)
+
+        self._refrescar_estado()
+
+    # — helpers de UI —
+    def _rotulo(self, txt: str) -> QLabel:
+        lbl = QLabel(txt.upper())
+        lbl.setObjectName("grupo")
+        return lbl
+
+    def _set_prop(self, w: QWidget, name: str, val: bool) -> None:
+        w.setProperty(name, val)
+        w.style().unpolish(w)
+        w.style().polish(w)
+
+    # — acciones —
+    def _elegir_archivo(self, campo: Campo, clave: str, tipos: str) -> None:
+        ruta, _ = QFileDialog.getOpenFileName(
+            self, "Selecciona archivo", "", f"{tipos};;Todos (*.*)")
+        if not ruta:
+            return
+        campo.set_ruta(ruta)
+        self._refrescar_estado()
+        if clave == "cierre":
+            self.detectador = DetectarFechas(ruta)
+            self.detectador.detectado.connect(self._aplicar_fechas)
+            self.detectador.start()
+
+    def _elegir_carpeta(self) -> None:
+        d = QFileDialog.getExistingDirectory(self, "Carpeta de resultados")
+        if d:
+            self.salida.setText(d)
+
+    def _aplicar_fechas(self, primero, ultimo) -> None:
+        if primero and ultimo:
+            self.desde.setDate(QDate(primero.year, primero.month, primero.day))
+            self.hasta.setDate(QDate(ultimo.year, ultimo.month, ultimo.day))
+
+    def _refrescar_estado(self) -> None:
+        listos = sum(1 for c in self.campos.values() if c.hay())
+        total = len(self.campos)
+        self.status.setText(
+            f"● Listo · {listos} de {total} archivos seleccionados")
+        self._set_prop(self.status, "ok", listos == total)
+        self._set_prop(self.status, "err", False)
+
+    def _procesar(self) -> None:
+        faltantes = [e for k, e, _ in ARCHIVOS if not self.campos[k].hay()]
+        if faltantes:
+            QMessageBox.warning(
+                self, "Faltan archivos",
+                "Falta cargar:\n\n• " + "\n• ".join(faltantes))
+            return
+        for clave, _, _ in ARCHIVOS:
+            ruta = self.campos[clave].ruta()
+            if not Path(ruta).is_file():
+                QMessageBox.critical(
+                    self, "Archivo no encontrado", f"No existe:\n{ruta}")
+                return
+        qd, qh = self.desde.date(), self.hasta.date()
+        desde = date(qd.year(), qd.month(), qd.day())
+        hasta = date(qh.year(), qh.month(), qh.day())
+        if desde > hasta:
+            QMessageBox.critical(
+                self, "Rango inválido",
+                "La fecha 'Desde' es posterior a 'Hasta'.")
+            return
+
+        rutas = {k: self.campos[k].ruta() for k, _, _ in ARCHIVOS}
+        salida = Path(self.salida.text().strip()
+                      or (app_dir() / "resultados"))
+
+        self.consola.clear()
+        self.btn_procesar.setEnabled(False)
+        self.status.setText("● Procesando…")
+        self._set_prop(self.status, "ok", False)
+        self._set_prop(self.status, "err", False)
+
+        self.worker = Worker(rutas, desde, hasta, salida)
+        self.worker.linea.connect(self._log)
+        self.worker.terminado.connect(self._fin)
+        self.worker.start()
+
+    def _log(self, html: str) -> None:
+        self.consola.append(
+            f'<div style="white-space:pre;'
+            f'font-family:\'IBM Plex Mono\';font-size:12px">{html}</div>')
+
+    def _fin(self, ndis: int) -> None:
+        self.btn_procesar.setEnabled(True)
+        if ndis < 0:
+            self.status.setText("● Error durante el proceso")
+            self._set_prop(self.status, "ok", False)
+            self._set_prop(self.status, "err", True)
+            return
+        if ndis == 0:
+            self.status.setText("● Conciliación completada sin diferencias")
+            self._set_prop(self.status, "ok", True)
+            self._set_prop(self.status, "err", False)
+        else:
+            self.status.setText(
+                f"● Completado con {ndis} discrepancia(s)")
+            self._set_prop(self.status, "ok", False)
+            self._set_prop(self.status, "err", True)
 
 
 def main():
-    root = tk.Tk()
-    try:
-        ttk.Style().theme_use("vista")
-    except tk.TclError:
-        pass
-    ConciliadorApp(root)
-    root.mainloop()
+    app = QApplication(sys.argv)
+    cargar_fuentes()
+    app.setStyleSheet(QSS)
+    ventana = Ventana()
+    ventana.show()
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

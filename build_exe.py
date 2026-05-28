@@ -33,7 +33,7 @@ def main():
                 f"Falta {archivo}. Genera config/tiendas.yaml antes de compilar."
             )
 
-    PyInstaller.__main__.run([
+    args = [
         str(RAIZ / "conciliar_gui.py"),
         "--onefile",
         "--windowed",
@@ -43,7 +43,15 @@ def main():
         "--collect-submodules", "pandas",
         "--noconfirm",
         "--clean",
-    ])
+    ]
+    # Las fuentes IBM Plex son opcionales: si la carpeta `fonts/` con los .ttf
+    # esta presente, se empaqueta dentro del .exe para que el look sea el mismo
+    # en cualquier PC; si no, Qt cae a la fuente del sistema.
+    fonts = RAIZ / "fonts"
+    if fonts.exists() and any(fonts.iterdir()):
+        args[6:6] = ["--add-data", f"{fonts}{SEP}fonts"]
+
+    PyInstaller.__main__.run(args)
 
     exe = RAIZ / "dist" / "ConciliadorVentas.exe"
     if exe.exists():
