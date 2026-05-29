@@ -19,8 +19,9 @@ Flags utiles:
 Output:
     resultados/conciliacion_ventas_<periodo>.xlsx con 3 hojas:
       - Resumen        una fila por (tienda, medio) con totales del periodo
-      - Detalle        una fila por (tienda, fecha, medio) con cierre vs pasarela
-      - Discrepancias  subset del Detalle con diferencia > tolerancia
+      - Detalle        formato ancho: una fila por (tienda, fecha) con MC,
+                       AMEX y Diners en paralelo (ordenado por tienda y fecha)
+      - Discrepancias  subset largo con diferencia > tolerancia
     Tabla resumida en consola.
 """
 
@@ -192,6 +193,61 @@ def conciliar_tienda(
     return filas
 
 
+# Orden y prefijo de cada pasarela en el formato ancho del Detalle.
+_MEDIOS_ANCHO = (
+    (MedioPago.MASTERCARD.value, "MASTERCARD"),
+    (MedioPago.AMEX.value, "AMEX"),
+    (MedioPago.DINERS.value, "DINERS"),
+)
+
+
+def detalle_ancho(detalle: list[dict]) -> list[dict]:
+    """Pivota el detalle largo (una fila por tienda × fecha × medio) al
+    formato ANCHO que pidió el usuario: una fila por (tienda, fecha) con las
+    tres pasarelas en paralelo (MC, AMEX, Diners), cada una con su cierre,
+    pasarela, diferencia y conteo de transacciones.
+
+    Orden: por orden de aparición de la tienda (igual al catálogo / selección)
+    y, dentro de cada tienda, por fecha ascendente (del primer al último día
+    del rango)."""
+    columnas = ["ID Tienda", "Nombre", "Fecha"]
+    for _, pref in _MEDIOS_ANCHO:
+        columnas += [
+            f"{pref} Cierre SAP", f"{pref} Pasarela", f"{pref} Diferencia",
+            f"{pref} #Compras", f"{pref} #Extornos",
+        ]
+
+    filas: dict[tuple, dict] = {}
+    orden_tienda: dict[str, int] = {}
+    for f in detalle:
+        idt = f["id_tienda"]
+        if idt not in orden_tienda:
+            orden_tienda[idt] = len(orden_tienda)
+        clave = (idt, f["nombre"], f["fecha"])
+        fila = filas.setdefault(clave, {
+            "ID Tienda": idt, "Nombre": f["nombre"], "Fecha": f["fecha"],
+        })
+        for medio_val, pref in _MEDIOS_ANCHO:
+            if f["medio"] == medio_val:
+                fila[f"{pref} Cierre SAP"] = f["cierre_sap"]
+                fila[f"{pref} Pasarela"] = f["pasarela"]
+                fila[f"{pref} Diferencia"] = f["diferencia"]
+                fila[f"{pref} #Compras"] = f["txn_compras"]
+                fila[f"{pref} #Extornos"] = f["txn_extornos"]
+                break
+
+    out = []
+    for clave in sorted(filas, key=lambda k: (orden_tienda[k[0]], k[2])):
+        fila = filas[clave]
+        for c in columnas:
+            if c in fila:
+                continue
+            # rellena las pasarelas sin actividad ese día: montos en 0, conteos en 0
+            fila[c] = 0 if "#" in c else Decimal("0")
+        out.append({c: fila[c] for c in columnas})
+    return out
+
+
 def resumir(detalle: list[dict], tolerancia: Decimal) -> list[dict]:
     """Resumen por (tienda, medio): totales del periodo y conteo de discrepancias."""
     acc = defaultdict(lambda: {
@@ -324,12 +380,19 @@ def exportar_excel(
     resumen: list[dict],
     discrepancias: list[dict],
 ):
-    """Exporta 3 hojas: Resumen, Detalle, Discrepancias."""
+    """Exporta 3 hojas:
+      - Resumen       una fila por (tienda, medio) con totales del periodo.
+      - Detalle       formato ANCHO: una fila por (tienda, fecha) con las tres
+                      pasarelas en paralelo. Ordenado por tienda y luego fecha.
+      - Discrepancias subset largo (una fila por tienda×fecha×medio con dif).
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(path, engine="openpyxl") as xl:
         pd.DataFrame(resumen).to_excel(xl, sheet_name="Resumen", index=False)
-        pd.DataFrame(detalle).to_excel(xl, sheet_name="Detalle", index=False)
-        pd.DataFrame(discrepancias).to_excel(xl, sheet_name="Discrepancias", index=False)
+        pd.DataFrame(detalle_ancho(detalle)).to_excel(
+            xl, sheet_name="Detalle", index=False)
+        pd.DataFrame(discrepancias).to_excel(
+            xl, sheet_name="Discrepancias", index=False)
 
 
 def main():

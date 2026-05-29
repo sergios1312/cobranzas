@@ -27,8 +27,20 @@ from pathlib import Path
 from PySide6.QtCore import QDate, QThread, Signal
 from PySide6.QtGui import QColor, QFontDatabase, QPalette
 from PySide6.QtWidgets import (
-    QApplication, QDateEdit, QFileDialog, QFrame, QGridLayout, QHBoxLayout,
-    QLabel, QLineEdit, QMessageBox, QPushButton, QTextEdit, QVBoxLayout,
+    QApplication,
+    QCheckBox,
+    QDateEdit,
+    QFileDialog,
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QTextEdit,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -150,6 +162,24 @@ QTextEdit {
     padding: 12px 14px; color: #1c1e22;
 }
 
+/* Selector de tiendas */
+QPushButton#toggle {
+    text-align: left; background: #ffffff; border: 1px solid #d8dade;
+    border-radius: 7px; padding: 7px 12px; font-weight: 500; font-size: 12px;
+}
+QPushButton#toggle:hover { background: #f2f2f4; }
+QPushButton#mini {
+    padding: 7px 12px; font-size: 12px;
+}
+QFrame#panel { background: #fbfbfc; border: 1px solid #e7e8ea;
+               border-radius: 8px; }
+QScrollArea { border: none; background: transparent; }
+QCheckBox { font-size: 12px; padding: 1px; spacing: 7px; color: #1c1e22; }
+QCheckBox::indicator { width: 15px; height: 15px; border: 1px solid #c2c4c9;
+                       border-radius: 4px; background: #ffffff; }
+QCheckBox::indicator:checked { background: #26282c; border-color: #26282c; }
+QCheckBox::indicator:hover { border-color: #26282c; }
+
 /* Scrollbars discretas */
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
 QScrollBar::handle:vertical { background: #d8dade; border-radius: 5px;
@@ -241,12 +271,14 @@ class Worker(QThread):
     linea = Signal(str)        # una línea HTML para la consola
     terminado = Signal(int)    # número de discrepancias; -1 si hubo error
 
-    def __init__(self, rutas: dict, desde: date, hasta: date, salida: Path):
+    def __init__(self, rutas: dict, desde: date, hasta: date, salida: Path,
+                 ids_tiendas: set[str]):
         super().__init__()
         self.rutas = rutas
         self.desde = desde
         self.hasta = hasta
         self.salida = salida
+        self.ids_tiendas = ids_tiendas
 
     def _ts(self) -> str:
         return datetime.now().strftime("%H:%M:%S")
@@ -273,6 +305,7 @@ class Worker(QThread):
                       f"{self.desde.isoformat()} → {self.hasta.isoformat()}")
             cuentas = cargar_cuentas(resource_path("config/cuentas.yaml"))
             tiendas = cargar_tiendas(resource_path("config/tiendas.yaml"))
+            tiendas = [t for t in tiendas if t.id_sap in self.ids_tiendas]
 
             # Carga directa de los 4 reportes necesarios para los pasos 2-3.
             # `pagos_diners` queda vacío: solo es necesario para los pasos
@@ -301,6 +334,7 @@ class Worker(QThread):
             self._log(f"AMEX&nbsp;............&nbsp;{n_amex:>6,}&nbsp;registros")
             self._log(f"Diners&nbsp;..........&nbsp;{n_dv:>6,}&nbsp;ventas&nbsp;·&nbsp;"
                       f"{n_dp}&nbsp;pagos")
+            self._log(f"Tiendas a conciliar:&nbsp;{len(tiendas)}")
 
             tol = cuentas.tolerancia_conciliacion
             detalle: list[dict] = []
@@ -351,16 +385,12 @@ class Worker(QThread):
                                  Decimal("0"))
             diff_neta = total_cierre - total_pasarela
             self._log("<b>TOTAL GLOBAL</b>")
-            self._log(f"&nbsp;&nbsp;Tiendas analizadas:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                      f"{n_tiendas}")
-            self._log(f"&nbsp;&nbsp;Filas (tienda × medio):&nbsp;&nbsp;{n_filas}")
-            self._log(f"&nbsp;&nbsp;Total Cierre SAP:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                      f"S/&nbsp;{total_cierre:>16,.2f}")
-            self._log(f"&nbsp;&nbsp;Total Pasarela:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                      f"S/&nbsp;{total_pasarela:>16,.2f}")
-            self._log(f"&nbsp;&nbsp;Diferencia neta:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-                      f"S/&nbsp;{diff_neta:>+16,.2f}")
-            self._log(f"&nbsp;&nbsp;Discrepancias detectadas:&nbsp;&nbsp;"
+            self._log(f"  {'Tiendas analizadas:':<26}{n_tiendas}")
+            self._log(f"  {'Filas (tienda × medio):':<26}{n_filas}")
+            self._log(f"  {'Total Cierre SAP:':<26}S/ {total_cierre:>16,.2f}")
+            self._log(f"  {'Total Pasarela:':<26}S/ {total_pasarela:>16,.2f}")
+            self._log(f"  {'Diferencia neta:':<26}S/ {diff_neta:>+16,.2f}")
+            self._log(f"  {'Discrepancias detectadas:':<26}"
                       f"<b>{len(discrepancias)}</b>")
 
             # Top discrepancias
@@ -411,6 +441,103 @@ class Worker(QThread):
 
 
 # ──────────────────────────────────────────────────────────────────────────
+#  Selector de tiendas: barra desplegable con checkboxes (de 1 a todas)
+# ──────────────────────────────────────────────────────────────────────────
+class SelectorTiendas(QWidget):
+    """Barra colapsable con un checkbox por tienda. Permite seleccionar desde
+    una hasta todas. Incluye búsqueda y atajos Todas / Ninguna. Por defecto
+    todas las tiendas quedan marcadas."""
+
+    def __init__(self, tiendas: list):
+        super().__init__()
+        self.checks: dict[str, QCheckBox] = {}
+        self.expandido = False
+
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(6)
+
+        # Cabecera: toggle + Todas / Ninguna
+        cab = QHBoxLayout()
+        cab.setSpacing(8)
+        self.btn_toggle = QPushButton()
+        self.btn_toggle.setObjectName("toggle")
+        self.btn_toggle.clicked.connect(self._toggle)
+        btn_todas = QPushButton("Todas")
+        btn_todas.setObjectName("mini")
+        btn_todas.clicked.connect(lambda: self._marcar(True))
+        btn_ninguna = QPushButton("Ninguna")
+        btn_ninguna.setObjectName("mini")
+        btn_ninguna.clicked.connect(lambda: self._marcar(False))
+        cab.addWidget(self.btn_toggle, 1)
+        cab.addWidget(btn_todas)
+        cab.addWidget(btn_ninguna)
+        lay.addLayout(cab)
+
+        # Panel colapsable con búsqueda + lista scrollable de checkboxes
+        self.panel = QFrame()
+        self.panel.setObjectName("panel")
+        pl = QVBoxLayout(self.panel)
+        pl.setContentsMargins(8, 8, 8, 8)
+        pl.setSpacing(6)
+
+        self.busqueda = QLineEdit()
+        self.busqueda.setPlaceholderText("Buscar tienda…")
+        self.busqueda.textChanged.connect(self._filtrar)
+        pl.addWidget(self.busqueda)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFixedHeight(180)
+        cont = QWidget()
+        cont.setObjectName("root")
+        cl = QVBoxLayout(cont)
+        cl.setContentsMargins(2, 2, 2, 2)
+        cl.setSpacing(1)
+        for t in tiendas:
+            cb = QCheckBox(f"{t.id_sap} — {t.nombre}")
+            cb.setChecked(True)
+            cb.stateChanged.connect(self._actualizar_label)
+            self.checks[t.id_sap] = cb
+            cl.addWidget(cb)
+        cl.addStretch(1)
+        scroll.setWidget(cont)
+        pl.addWidget(scroll)
+
+        lay.addWidget(self.panel)
+        self.panel.setVisible(False)
+        self._actualizar_label()
+
+    def _toggle(self) -> None:
+        self.expandido = not self.expandido
+        self.panel.setVisible(self.expandido)
+        self._actualizar_label()
+
+    def _marcar(self, val: bool) -> None:
+        """Marca/desmarca las tiendas que coinciden con la búsqueda actual
+        (si no hay búsqueda, todas)."""
+        txt = self.busqueda.text().strip().lower()
+        for cb in self.checks.values():
+            if not txt or txt in cb.text().lower():
+                cb.setChecked(val)
+        self._actualizar_label()
+
+    def _filtrar(self, txt: str) -> None:
+        txt = txt.strip().lower()
+        for cb in self.checks.values():
+            cb.setVisible(not txt or txt in cb.text().lower())
+
+    def _actualizar_label(self) -> None:
+        n = sum(1 for cb in self.checks.values() if cb.isChecked())
+        flecha = "▾" if self.expandido else "▸"
+        self.btn_toggle.setText(
+            f"{flecha}  Tiendas: {n} de {len(self.checks)} seleccionadas")
+
+    def seleccionadas(self) -> set[str]:
+        return {idt for idt, cb in self.checks.items() if cb.isChecked()}
+
+
+# ──────────────────────────────────────────────────────────────────────────
 #  Ventana principal
 # ──────────────────────────────────────────────────────────────────────────
 class Ventana(QWidget):
@@ -418,10 +545,14 @@ class Ventana(QWidget):
         super().__init__()
         self.setObjectName("root")
         self.setWindowTitle("Conciliación de Ventas — Tiendas Físicas")
-        self.resize(720, 720)
+        self.resize(720, 800)
         self.campos: dict[str, Campo] = {}
         self.detectador: DetectarFechas | None = None
         self.worker: Worker | None = None
+        try:
+            self.tiendas = cargar_tiendas(resource_path("config/tiendas.yaml"))
+        except Exception:
+            self.tiendas = []
 
         root = QVBoxLayout(self)
         root.setContentsMargins(24, 20, 24, 18)
@@ -486,6 +617,11 @@ class Ventana(QWidget):
         fechas.addSpacing(14)
         fechas.addWidget(hint, 1)
         root.addLayout(fechas)
+
+        # — Tiendas —
+        root.addWidget(self._rotulo("Tiendas"))
+        self.selector = SelectorTiendas(self.tiendas)
+        root.addWidget(self.selector)
 
         # — Carpeta de resultados —
         root.addWidget(self._rotulo("Carpeta de resultados"))
@@ -581,6 +717,13 @@ class Ventana(QWidget):
                 "La fecha 'Desde' es posterior a 'Hasta'.")
             return
 
+        ids_tiendas = self.selector.seleccionadas()
+        if not ids_tiendas:
+            QMessageBox.warning(
+                self, "Sin tiendas",
+                "Selecciona al menos una tienda para conciliar.")
+            return
+
         rutas = {k: self.campos[k].ruta() for k, _, _ in ARCHIVOS}
         salida = Path(self.salida.text().strip()
                       or (app_dir() / "resultados"))
@@ -591,7 +734,7 @@ class Ventana(QWidget):
         self._set_prop(self.status, "ok", False)
         self._set_prop(self.status, "err", False)
 
-        self.worker = Worker(rutas, desde, hasta, salida)
+        self.worker = Worker(rutas, desde, hasta, salida, ids_tiendas)
         self.worker.linea.connect(self._log)
         self.worker.terminado.connect(self._fin)
         self.worker.start()
